@@ -23,12 +23,16 @@ const pages = {
   register: $("registerPage"),
   order: $("orderPage"),
   receive: $("receivePage"),
+  history: $("historyPage"),
   option: $("optionPage"),
   table: $("tablePage"),
 };
 
 function showPage(name) {
-  Object.values(pages).forEach(page => page.classList.remove("active"));
+  Object.values(pages).forEach(page => {
+    page.classList.remove("active");
+  });
+
   pages[name].classList.add("active");
 }
 
@@ -41,17 +45,13 @@ function esc(text) {
     .replaceAll("'", "&#039;");
 }
 
-/* =========================
-   グループ
-========================= */
-
 async function loadGroups() {
   const { data, error } = await supabase
     .from("groups")
     .select("*");
 
   if (error) {
-    console.error("グループ取得エラー", error);
+    console.error(error);
     alert("グループ読み込み失敗");
     return [];
   }
@@ -129,8 +129,8 @@ $("createGroupButton").onclick = async () => {
     .from("groups")
     .insert([
       {
-        name: name,
-        password: password
+        name,
+        password
       }
     ]);
 
@@ -185,10 +185,6 @@ $("loginButton").onclick = async () => {
 
   showPage("home");
 };
-
-/* =========================
-   管理人メニュー
-========================= */
 
 $("changeGroupPasswordButton").onclick = async () => {
   if ($("adminPassword").value.trim() !== ADMIN_PASSWORD) {
@@ -260,10 +256,6 @@ $("deleteGroupButton").onclick = async () => {
   alert("削除しました");
 };
 
-/* =========================
-   画面移動
-========================= */
-
 document.querySelectorAll(".backHome").forEach(btn => {
   btn.onclick = () => {
     showPage("home");
@@ -297,6 +289,11 @@ $("goReceiveButton").onclick = async () => {
   showPage("receive");
 };
 
+$("goHistoryButton").onclick = async () => {
+  await renderHistoryPage();
+  showPage("history");
+};
+
 $("goOptionButton").onclick = async () => {
   await renderOptionManagePage();
   showPage("option");
@@ -306,10 +303,6 @@ $("goTableButton").onclick = async () => {
   await renderTableManagePage();
   showPage("table");
 };
-
-/* =========================
-   メニュー登録・一覧
-========================= */
 
 function resetRegisterForm() {
   $("cocktailForm").reset();
@@ -321,8 +314,7 @@ async function loadMenus() {
   const { data, error } = await supabase
     .from("cocktails")
     .select("*")
-    .eq("group_id", currentGroupId)
-    .order("id", { ascending: false });
+    .eq("group_id", currentGroupId);
 
   if (error) {
     alert("メニュー読み込み失敗");
@@ -363,7 +355,7 @@ async function renderMenus() {
 
       <h3>${esc(menu.name)}</h3>
 
-      <span class="tag">${esc(menu.item_type || "カクテル")}</span>
+      <span class="tag">${esc(menu.item_type || "通常")}</span>
       <span class="tag">${esc(menu.category)}</span>
       <span class="tag">${esc(menu.taste)}</span>
 
@@ -423,7 +415,7 @@ $("cocktailForm").onsubmit = async event => {
 
   if (result.error) {
     console.error(result.error);
-    alert("保存失敗。cocktailsに item_type カラムがあるか確認してね");
+    alert("保存失敗");
     return;
   }
 
@@ -446,7 +438,7 @@ window.editMenu = async id => {
   }
 
   $("editCocktailId").value = data.id;
-  $("itemType").value = data.item_type || "カクテル";
+  $("itemType").value = data.item_type || "通常";
   $("category").value = data.category;
   $("name").value = data.name;
   $("taste").value = data.taste;
@@ -477,10 +469,6 @@ window.deleteMenu = async id => {
 
   await renderMenus();
 };
-
-/* =========================
-   卓管理
-========================= */
 
 async function loadTables() {
   const { data, error } = await supabase
@@ -557,10 +545,6 @@ window.deleteTable = async id => {
 
   await renderTableManagePage();
 };
-
-/* =========================
-   選択項目管理
-========================= */
 
 async function loadOptions() {
   const { data: groups, error: groupError } = await supabase
@@ -736,9 +720,35 @@ window.deleteOptionGroup = async id => {
   await renderOptionManagePage();
 };
 
-/* =========================
-   注文画面
-========================= */
+function setupOrderTabs() {
+  document.querySelectorAll(".tab-button").forEach(button => {
+    button.onclick = () => {
+      document.querySelectorAll(".tab-button").forEach(btn => {
+        btn.classList.remove("active");
+      });
+
+      document.querySelectorAll(".order-tab").forEach(tab => {
+        tab.classList.remove("active");
+      });
+
+      button.classList.add("active");
+
+      const tabName = button.dataset.tab;
+
+      if (tabName === "normal") {
+        $("normalOrderPanel").classList.add("active");
+      }
+
+      if (tabName === "food") {
+        $("foodOrderPanel").classList.add("active");
+      }
+
+      if (tabName === "original") {
+        $("originalOrderPanel").classList.add("active");
+      }
+    };
+  });
+}
 
 async function renderOrderPage() {
   cart = [];
@@ -758,7 +768,13 @@ async function renderOrderPage() {
     `;
   });
 
-  $("orderOptions").innerHTML = optionGroupsCache.map(group => {
+  renderNormalOptions();
+  renderOrderItemList("フード", "foodItemList");
+  renderOrderItemList("オリジナル", "originalItemList");
+}
+
+function renderNormalOptions() {
+  $("normalOptions").innerHTML = optionGroupsCache.map(group => {
     const choices = optionChoicesCache.filter(choice =>
       String(choice.option_group_id) === String(group.id)
     );
@@ -767,7 +783,7 @@ async function renderOrderPage() {
       <div class="option-box">
         <label>${esc(group.name)}</label>
 
-        <select class="order-option" data-name="${esc(group.name)}">
+        <select class="normal-option" data-name="${esc(group.name)}">
           <option value="">選択なし</option>
 
           ${choices.map(choice => `
@@ -780,14 +796,22 @@ async function renderOrderPage() {
       </div>
     `;
   }).join("");
+}
 
-  if (menus.length === 0) {
-    $("orderItemList").innerHTML =
-      `<div class="card">まだ商品が登録されていません。</div>`;
+async function renderOrderItemList(type, elementId) {
+  const menus = await loadMenus();
+
+  const filtered = menus.filter(item =>
+    String(item.item_type || "") === type
+  );
+
+  if (filtered.length === 0) {
+    $(elementId).innerHTML =
+      `<div class="card">まだ${esc(type)}が登録されていません。</div>`;
     return;
   }
 
-  $("orderItemList").innerHTML = menus.map(item => `
+  $(elementId).innerHTML = filtered.map(item => `
     <div class="card">
       <div class="card-image">
         ${item.image ? `<img src="${esc(item.image)}">` : "🍹"}
@@ -795,19 +819,46 @@ async function renderOrderPage() {
 
       <h3>${esc(item.name)}</h3>
 
-      <span class="tag">${esc(item.item_type || "カクテル")}</span>
-      <span class="tag">${esc(item.category)}</span>
+      <span class="tag">${esc(item.item_type || "")}</span>
+      <span class="tag">${esc(item.category || "")}</span>
 
       <p>${esc(item.description)}</p>
 
-      <button class="primary" onclick="addToCart('${item.id}')">
+      <button class="primary" onclick="addMenuToCart('${item.id}')">
         カートに追加
       </button>
     </div>
   `).join("");
 }
 
-window.addToCart = async id => {
+$("addNormalToCartButton").onclick = () => {
+  const selectedOptions = [];
+
+  document.querySelectorAll(".normal-option").forEach(select => {
+    if (select.value) {
+      selectedOptions.push({
+        name: select.dataset.name,
+        value: select.value
+      });
+    }
+  });
+
+  if (selectedOptions.length === 0) {
+    alert("選択項目を1つ以上選んでください");
+    return;
+  }
+
+  cart.push({
+    id: "normal-" + Date.now(),
+    name: "通常カクテル",
+    item_type: "通常",
+    options: selectedOptions
+  });
+
+  renderCart();
+};
+
+window.addMenuToCart = async id => {
   const menus = await loadMenus();
   const item = menus.find(menu => String(menu.id) === String(id));
 
@@ -818,7 +869,8 @@ window.addToCart = async id => {
   cart.push({
     id: item.id,
     name: item.name,
-    item_type: item.item_type || "カクテル"
+    item_type: item.item_type || "",
+    options: []
   });
 
   renderCart();
@@ -834,6 +886,16 @@ function renderCart() {
     <div class="cart-item">
       <b>${esc(item.name)}</b><br>
       <span>${esc(item.item_type)}</span>
+
+      ${
+        item.options && item.options.length > 0
+          ? `<ul>
+              ${item.options.map(opt => `
+                <li>${esc(opt.name)}：${esc(opt.value)}</li>
+              `).join("")}
+            </ul>`
+          : ""
+      }
 
       <button class="delete mini" onclick="removeCartItem(${index})">
         削除
@@ -866,17 +928,6 @@ $("sendOrderButton").onclick = async () => {
     return;
   }
 
-  const selectedOptions = [];
-
-  document.querySelectorAll(".order-option").forEach(select => {
-    if (select.value) {
-      selectedOptions.push({
-        name: select.dataset.name,
-        value: select.value
-      });
-    }
-  });
-
   const { error } = await supabase
     .from("orders")
     .insert([
@@ -885,7 +936,7 @@ $("sendOrderButton").onclick = async () => {
         table_name: tableName,
         customer_name: customerName,
         items: cart,
-        options: selectedOptions,
+        options: [],
         memo: $("orderMemo").value,
         status: "pending"
       }
@@ -906,30 +957,37 @@ $("sendOrderButton").onclick = async () => {
   renderCart();
 };
 
-/* =========================
-   受け取り画面
-========================= */
-
-async function renderReceivePage() {
-  const { data, error } = await supabase
+async function loadOrders(includeDone = false) {
+  let query = supabase
     .from("orders")
     .select("*")
-    .eq("group_id", currentGroupId)
-    .neq("status", "done");
+    .eq("group_id", currentGroupId);
+
+  if (!includeDone) {
+    query = query.neq("status", "done");
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(error);
     alert("注文読み込み失敗");
-    return;
+    return [];
   }
 
-  if (!data || data.length === 0) {
+  return data || [];
+}
+
+async function renderReceivePage() {
+  const orders = await loadOrders(false);
+
+  if (orders.length === 0) {
     $("orderReceiveList").innerHTML =
       `<div class="card">現在の注文はありません。</div>`;
     return;
   }
 
-  $("orderReceiveList").innerHTML = data.map(order => {
+  $("orderReceiveList").innerHTML = orders.map(order => {
     const statusText =
       order.status === "making" ? "対応中" : "未対応";
 
@@ -953,14 +1011,19 @@ async function renderReceivePage() {
         <p><b>商品：</b></p>
         <ul>
           ${(order.items || []).map(item => `
-            <li>${esc(item.name)} / ${esc(item.item_type)}</li>
-          `).join("")}
-        </ul>
+            <li>
+              ${esc(item.name)} / ${esc(item.item_type)}
 
-        <p><b>選択：</b></p>
-        <ul>
-          ${(order.options || []).map(opt => `
-            <li>${esc(opt.name)}：${esc(opt.value)}</li>
+              ${
+                item.options && item.options.length > 0
+                  ? `<ul>
+                      ${item.options.map(opt => `
+                        <li>${esc(opt.name)}：${esc(opt.value)}</li>
+                      `).join("")}
+                    </ul>`
+                  : ""
+              }
+            </li>
           `).join("")}
         </ul>
 
@@ -998,9 +1061,87 @@ window.advanceOrderStatus = async (id, status) => {
   await renderReceivePage();
 };
 
-/* =========================
-   初期化
-========================= */
+async function renderHistoryPage() {
+  const orders = await loadOrders(true);
+
+  if (orders.length === 0) {
+    $("orderHistoryList").innerHTML =
+      `<div class="card">注文履歴はありません。</div>`;
+    return;
+  }
+
+  $("orderHistoryList").innerHTML = orders.map(order => {
+    let statusText = "未対応";
+
+    if (order.status === "making") {
+      statusText = "対応中";
+    }
+
+    if (order.status === "done") {
+      statusText = "お届け済み";
+    }
+
+    return `
+      <div class="order-card ${esc(order.status)}">
+        <h3>卓：${esc(order.table_name)}</h3>
+        <p><b>名前：</b>${esc(order.customer_name)}</p>
+        <p><b>状態：</b>${statusText}</p>
+
+        <ul>
+          ${(order.items || []).map(item => `
+            <li>
+              ${esc(item.name)} / ${esc(item.item_type)}
+
+              ${
+                item.options && item.options.length > 0
+                  ? `<ul>
+                      ${item.options.map(opt => `
+                        <li>${esc(opt.name)}：${esc(opt.value)}</li>
+                      `).join("")}
+                    </ul>`
+                  : ""
+              }
+            </li>
+          `).join("")}
+        </ul>
+
+        <p><b>メモ：</b>${esc(order.memo)}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+$("resetHistoryButton").onclick = async () => {
+  const pass = $("historyAdminPassword").value.trim();
+
+  if (pass !== ADMIN_PASSWORD) {
+    alert("管理人パスワードが違います");
+    return;
+  }
+
+  if (!confirm("このグループの注文履歴を全て削除しますか？")) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .delete()
+    .eq("group_id", currentGroupId);
+
+  if (error) {
+    console.error(error);
+    alert("履歴リセット失敗");
+    return;
+  }
+
+  $("historyAdminPassword").value = "";
+
+  alert("履歴をリセットしました");
+
+  await renderHistoryPage();
+};
+
+setupOrderTabs();
 
 await renderGroupOptions();
 showPage("login");
