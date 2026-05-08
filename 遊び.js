@@ -45,6 +45,17 @@ function esc(text) {
     .replaceAll("'", "&#039;");
 }
 
+async function safeOpenPage(pageName, renderFunction, errorMessage) {
+  showPage(pageName);
+
+  try {
+    await renderFunction();
+  } catch (error) {
+    console.error(errorMessage, error);
+    alert(errorMessage);
+  }
+}
+
 async function loadGroups() {
   const { data, error } = await supabase
     .from("groups")
@@ -270,8 +281,11 @@ $("logoutButton").onclick = () => {
 };
 
 $("goListButton").onclick = async () => {
-  await renderMenus();
-  showPage("list");
+  await safeOpenPage(
+    "list",
+    renderMenus,
+    "メニュー一覧の読み込みに失敗しました"
+  );
 };
 
 $("goRegisterButton").onclick = () => {
@@ -280,28 +294,43 @@ $("goRegisterButton").onclick = () => {
 };
 
 $("goOrderButton").onclick = async () => {
-  await renderOrderPage();
-  showPage("order");
+  await safeOpenPage(
+    "order",
+    renderOrderPage,
+    "注文画面の読み込みに失敗しました"
+  );
 };
 
 $("goReceiveButton").onclick = async () => {
-  await renderReceivePage();
-  showPage("receive");
+  await safeOpenPage(
+    "receive",
+    renderReceivePage,
+    "受け取り画面の読み込みに失敗しました"
+  );
 };
 
 $("goHistoryButton").onclick = async () => {
-  await renderHistoryPage();
-  showPage("history");
+  await safeOpenPage(
+    "history",
+    renderHistoryPage,
+    "注文履歴の読み込みに失敗しました"
+  );
 };
 
 $("goOptionButton").onclick = async () => {
-  await renderOptionManagePage();
-  showPage("option");
+  await safeOpenPage(
+    "option",
+    renderOptionManagePage,
+    "選択項目管理の読み込みに失敗しました"
+  );
 };
 
 $("goTableButton").onclick = async () => {
-  await renderTableManagePage();
-  showPage("table");
+  await safeOpenPage(
+    "table",
+    renderTableManagePage,
+    "卓管理の読み込みに失敗しました"
+  );
 };
 
 function resetRegisterForm() {
@@ -317,9 +346,8 @@ async function loadMenus() {
     .eq("group_id", currentGroupId);
 
   if (error) {
-    alert("メニュー読み込み失敗");
     console.error(error);
-    return [];
+    throw new Error("メニュー読み込み失敗");
   }
 
   return data || [];
@@ -478,8 +506,7 @@ async function loadTables() {
 
   if (error) {
     console.error(error);
-    alert("卓の読み込みに失敗しました");
-    return [];
+    throw new Error("卓の読み込みに失敗しました");
   }
 
   return data || [];
@@ -559,10 +586,7 @@ async function loadOptions() {
 
   if (groupError || choiceError) {
     console.error(groupError || choiceError);
-    alert("選択項目の読み込みに失敗しました");
-    optionGroupsCache = [];
-    optionChoicesCache = [];
-    return;
+    throw new Error("選択項目の読み込みに失敗しました");
   }
 
   optionGroupsCache = groups || [];
@@ -754,9 +778,11 @@ async function renderOrderPage() {
   cart = [];
   renderCart();
 
-  const tables = await loadTables();
-  const menus = await loadMenus();
+  $("normalOptions").innerHTML = `<p>読み込み中...</p>`;
+  $("foodItemList").innerHTML = `<div class="card">読み込み中...</div>`;
+  $("originalItemList").innerHTML = `<div class="card">読み込み中...</div>`;
 
+  const tables = await loadTables();
   await loadOptions();
 
   $("orderTableSelect").innerHTML =
@@ -769,11 +795,17 @@ async function renderOrderPage() {
   });
 
   renderNormalOptions();
-  renderOrderItemList("フード", "foodItemList");
-  renderOrderItemList("オリジナル", "originalItemList");
+  await renderOrderItemList("フード", "foodItemList");
+  await renderOrderItemList("オリジナル", "originalItemList");
 }
 
 function renderNormalOptions() {
+  if (optionGroupsCache.length === 0) {
+    $("normalOptions").innerHTML =
+      `<div class="card">まだ選択項目が登録されていません。</div>`;
+    return;
+  }
+
   $("normalOptions").innerHTML = optionGroupsCache.map(group => {
     const choices = optionChoicesCache.filter(choice =>
       String(choice.option_group_id) === String(group.id)
@@ -971,8 +1003,7 @@ async function loadOrders(includeDone = false) {
 
   if (error) {
     console.error(error);
-    alert("注文読み込み失敗");
-    return [];
+    throw new Error("注文読み込み失敗");
   }
 
   return data || [];
