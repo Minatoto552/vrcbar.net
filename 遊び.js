@@ -45,14 +45,16 @@ function esc(text) {
     .replaceAll("'", "&#039;");
 }
 
-async function safeOpenPage(pageName, renderFunction, errorMessage) {
+async function openPage(pageName, renderFunction) {
   showPage(pageName);
 
-  try {
-    await renderFunction();
-  } catch (error) {
-    console.error(errorMessage, error);
-    alert(errorMessage);
+  if (typeof renderFunction === "function") {
+    try {
+      await renderFunction();
+    } catch (error) {
+      console.error(error);
+      alert("読み込みに失敗しました。F12のConsoleを確認してください。");
+    }
   }
 }
 
@@ -138,12 +140,7 @@ $("createGroupButton").onclick = async () => {
 
   const { error } = await supabase
     .from("groups")
-    .insert([
-      {
-        name,
-        password
-      }
-    ]);
+    .insert([{ name, password }]);
 
   if (error) {
     console.error(error);
@@ -213,9 +210,7 @@ $("changeGroupPasswordButton").onclick = async () => {
 
   const { error } = await supabase
     .from("groups")
-    .update({
-      password: newPass
-    })
+    .update({ password: newPass })
     .eq("id", groupId);
 
   if (error) {
@@ -281,11 +276,7 @@ $("logoutButton").onclick = () => {
 };
 
 $("goListButton").onclick = async () => {
-  await safeOpenPage(
-    "list",
-    renderMenus,
-    "メニュー一覧の読み込みに失敗しました"
-  );
+  await openPage("list", renderMenus);
 };
 
 $("goRegisterButton").onclick = () => {
@@ -294,43 +285,23 @@ $("goRegisterButton").onclick = () => {
 };
 
 $("goOrderButton").onclick = async () => {
-  await safeOpenPage(
-    "order",
-    renderOrderPage,
-    "注文画面の読み込みに失敗しました"
-  );
+  await openPage("order", renderOrderPage);
 };
 
 $("goReceiveButton").onclick = async () => {
-  await safeOpenPage(
-    "receive",
-    renderReceivePage,
-    "受け取り画面の読み込みに失敗しました"
-  );
+  await openPage("receive", renderReceivePage);
 };
 
 $("goHistoryButton").onclick = async () => {
-  await safeOpenPage(
-    "history",
-    renderHistoryPage,
-    "注文履歴の読み込みに失敗しました"
-  );
+  await openPage("history", renderHistoryPage);
 };
 
 $("goOptionButton").onclick = async () => {
-  await safeOpenPage(
-    "option",
-    renderOptionManagePage,
-    "選択項目管理の読み込みに失敗しました"
-  );
+  await openPage("option", renderOptionManagePage);
 };
 
 $("goTableButton").onclick = async () => {
-  await safeOpenPage(
-    "table",
-    renderTableManagePage,
-    "卓管理の読み込みに失敗しました"
-  );
+  await openPage("table", renderTableManagePage);
 };
 
 function resetRegisterForm() {
@@ -347,7 +318,7 @@ async function loadMenus() {
 
   if (error) {
     console.error(error);
-    throw new Error("メニュー読み込み失敗");
+    throw error;
   }
 
   return data || [];
@@ -433,13 +404,8 @@ $("cocktailForm").onsubmit = async event => {
   };
 
   const result = editId
-    ? await supabase
-        .from("cocktails")
-        .update(data)
-        .eq("id", editId)
-    : await supabase
-        .from("cocktails")
-        .insert([data]);
+    ? await supabase.from("cocktails").update(data).eq("id", editId)
+    : await supabase.from("cocktails").insert([data]);
 
   if (result.error) {
     console.error(result.error);
@@ -506,7 +472,7 @@ async function loadTables() {
 
   if (error) {
     console.error(error);
-    throw new Error("卓の読み込みに失敗しました");
+    throw error;
   }
 
   return data || [];
@@ -522,12 +488,7 @@ $("addTableButton").onclick = async () => {
 
   const { error } = await supabase
     .from("tables")
-    .insert([
-      {
-        group_id: currentGroupId,
-        name: name
-      }
-    ]);
+    .insert([{ group_id: currentGroupId, name }]);
 
   if (error) {
     console.error(error);
@@ -586,7 +547,7 @@ async function loadOptions() {
 
   if (groupError || choiceError) {
     console.error(groupError || choiceError);
-    throw new Error("選択項目の読み込みに失敗しました");
+    throw groupError || choiceError;
   }
 
   optionGroupsCache = groups || [];
@@ -603,12 +564,7 @@ $("addOptionGroupButton").onclick = async () => {
 
   const { error } = await supabase
     .from("option_groups")
-    .insert([
-      {
-        group_id: currentGroupId,
-        name: name
-      }
-    ]);
+    .insert([{ group_id: currentGroupId, name }]);
 
   if (error) {
     console.error(error);
@@ -636,7 +592,7 @@ $("addOptionChoiceButton").onclick = async () => {
       {
         group_id: currentGroupId,
         option_group_id: optionGroupId,
-        name: name,
+        name,
         sub_name: subName
       }
     ]);
@@ -1003,7 +959,7 @@ async function loadOrders(includeDone = false) {
 
   if (error) {
     console.error(error);
-    throw new Error("注文読み込み失敗");
+    throw error;
   }
 
   return data || [];
@@ -1078,9 +1034,7 @@ window.advanceOrderStatus = async (id, status) => {
 
   const { error } = await supabase
     .from("orders")
-    .update({
-      status: nextStatus
-    })
+    .update({ status: nextStatus })
     .eq("id", id);
 
   if (error) {
