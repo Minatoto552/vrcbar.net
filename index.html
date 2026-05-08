@@ -3,160 +3,241 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VRC Cocktail Menu</title>
+  <title>VRC Bar Order System</title>
   <link rel="stylesheet" href="遊び.css" />
 </head>
 <body>
 
-  <header>
-    <h1>🍸 VRC Cocktail Menu</h1>
-    <p>VRCバー向けのカクテルレシピ管理サイト</p>
-  </header>
+<header>
+  <h1>🍸 VRC Bar System</h1>
+  <p>メニュー登録・注文・受け取り管理</p>
+</header>
 
-  <section id="loginPage" class="page active">
-    <div class="panel center-panel">
-      <h2>グループを開く</h2>
+<section id="loginPage" class="page active">
+  <div class="panel center-panel">
+    <h2>グループを開く</h2>
 
-      <label>グループ選択</label>
-      <select id="groupSelect">
-        <option value="">読み込み中...</option>
+    <label>グループ選択</label>
+    <select id="groupSelect"></select>
+
+    <label>グループパスワード</label>
+    <input id="groupPassword" type="password" placeholder="パスワードを入力" />
+
+    <button id="loginButton" class="primary">ログイン</button>
+    <button id="goCreateGroupButton" class="small-link-button">＋ グループを作成する</button>
+    <button id="goAdminButton" class="small-link-button">管理人メニュー</button>
+  </div>
+</section>
+
+<section id="createGroupPage" class="page">
+  <div class="panel center-panel">
+    <h2>グループ作成</h2>
+
+    <label>グループ名</label>
+    <input id="newGroupName" placeholder="例：Nakiya Bar" />
+
+    <label>グループパスワード</label>
+    <input id="newGroupPassword" type="password" />
+
+    <button id="createGroupButton" class="primary">グループを作成</button>
+    <button id="backToLoginButton" class="secondary">戻る</button>
+  </div>
+</section>
+
+<section id="adminPage" class="page">
+  <div class="panel center-panel">
+    <h2>管理人メニュー</h2>
+
+    <label>管理人パスワード</label>
+    <input id="adminPassword" type="password" />
+
+    <label>グループ選択</label>
+    <select id="adminGroupSelect"></select>
+
+    <label>新しいグループパスワード</label>
+    <input id="newPasswordForGroup" type="password" />
+
+    <button id="changeGroupPasswordButton" class="primary">パスワード変更</button>
+    <button id="deleteGroupButton" class="danger-button">グループ削除</button>
+    <button id="backToLoginFromAdminButton" class="secondary">戻る</button>
+  </div>
+</section>
+
+<section id="homePage" class="page">
+  <div class="top-menu">
+    <p id="currentGroupText">現在のグループ：</p>
+    <button id="logoutButton" class="secondary mini">ログアウト</button>
+  </div>
+
+  <div class="menu-buttons">
+    <button id="goListButton" class="primary">メニュー一覧</button>
+    <button id="goRegisterButton" class="primary">メニュー登録</button>
+    <button id="goOrderButton" class="primary">注文画面</button>
+    <button id="goReceiveButton" class="primary">受け取り画面</button>
+    <button id="goOptionButton" class="primary">選択項目管理</button>
+    <button id="goTableButton" class="primary">卓管理</button>
+  </div>
+</section>
+
+<section id="listPage" class="page">
+  <div class="top-menu">
+    <h2>メニュー一覧</h2>
+    <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="tools">
+    <input id="search" placeholder="検索..." />
+  </div>
+
+  <div id="menuList" class="menu-grid"></div>
+</section>
+
+<section id="registerPage" class="page">
+  <div class="panel center-panel">
+    <h2>メニュー登録</h2>
+
+    <form id="cocktailForm">
+      <input type="hidden" id="editCocktailId" />
+
+      <label>商品タイプ</label>
+      <select id="itemType" required>
+        <option value="" selected disabled>選択してください</option>
+        <option>カクテル</option>
+        <option>フード</option>
       </select>
 
-      <label>グループパスワード</label>
-      <input id="groupPassword" type="password" placeholder="パスワードを入力" />
-
-      <button id="loginButton" class="primary">ログイン</button>
-
-      <button id="goCreateGroupButton" class="small-link-button">
-        ＋ グループを作成する
-      </button>
-
-      <button id="goAdminButton" class="small-link-button">
-        管理人メニュー
-      </button>
-    </div>
-  </section>
-
-  <section id="createGroupPage" class="page">
-    <div class="panel center-panel">
-      <h2>グループ作成</h2>
-
-      <label>グループ名</label>
-      <input id="newGroupName" placeholder="例：パジャマBar" />
-
-      <label>グループパスワード</label>
-      <input id="newGroupPassword" type="password" placeholder="登録用パスワード" />
-
-      <button id="createGroupButton" class="primary">グループを作成</button>
-      <button id="backToLoginButton" class="secondary">ログイン画面に戻る</button>
-    </div>
-  </section>
-
-  <section id="adminPage" class="page">
-    <div class="panel center-panel">
-      <h2>管理人メニュー</h2>
-
-      <label>管理人パスワード</label>
-      <input id="adminPassword" type="password" placeholder="管理人パスワード" />
-
-      <label>グループ選択</label>
-      <select id="adminGroupSelect">
-        <option value="">グループを選択してください</option>
+      <label>カテゴリー</label>
+      <select id="category" required>
+        <option value="" selected disabled>選択してください</option>
+        <option>ノーマル</option>
+        <option>キャストオリカク</option>
+        <option>スタッフオリカク</option>
+        <option>フード</option>
       </select>
 
-      <label>新しいグループパスワード</label>
-      <input id="newPasswordForGroup" type="password" placeholder="変更する場合だけ入力" />
+      <label>商品名</label>
+      <input id="name" required />
 
-      <button id="changeGroupPasswordButton" class="primary">
-        グループパスワードを変更
-      </button>
+      <label>味イメージ</label>
+      <select id="taste" required>
+        <option value="" selected disabled>選択してください</option>
+        <option>甘い</option>
+        <option>超甘い</option>
+        <option>さっぱり</option>
+        <option>フルーティー</option>
+        <option>ミルク系</option>
+        <option>炭酸系</option>
+        <option>苦め</option>
+        <option>大人っぽい</option>
+        <option>デザート系</option>
+        <option>フード系</option>
+        <option>ネタ系</option>
+      </select>
 
-      <button id="deleteGroupButton" class="danger-button">
-        グループを削除
-      </button>
+      <label>材料・内容</label>
+      <textarea id="bottles"></textarea>
 
-      <button id="backToLoginFromAdminButton" class="secondary">
-        ログイン画面に戻る
-      </button>
+      <label>作り方・提供方法</label>
+      <textarea id="recipe"></textarea>
+
+      <label>説明</label>
+      <textarea id="description"></textarea>
+
+      <label>画像URL</label>
+      <input id="image" />
+
+      <button type="submit" class="primary" id="submitButton">登録する</button>
+    </form>
+
+    <button class="secondary backHome">ホーム</button>
+  </div>
+</section>
+
+<section id="orderPage" class="page">
+  <div class="top-menu">
+    <h2>注文画面</h2>
+    <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="order-layout">
+    <div class="panel">
+      <label>卓</label>
+      <select id="orderTableSelect"></select>
+
+      <label>お名前</label>
+      <input id="customerName" placeholder="例：みなと" />
+
+      <label>メモ</label>
+      <textarea id="orderMemo" placeholder="例：氷少なめ"></textarea>
+
+      <h3>選択項目</h3>
+      <div id="orderOptions"></div>
     </div>
-  </section>
 
-  <section id="listPage" class="page">
-    <div class="top-menu">
-      <p id="currentGroupText">現在のグループ：</p>
-
-      <div>
-        <button id="goRegisterButton" class="primary mini">カクテル登録</button>
-        <button id="logoutButton" class="secondary mini">ログアウト</button>
-      </div>
+    <div>
+      <h3>商品を選ぶ</h3>
+      <div id="orderItemList" class="menu-grid"></div>
     </div>
 
-    <div class="tools">
-      <input id="search" placeholder="検索..." />
+    <div class="panel cart-panel">
+      <h3>買い物カート</h3>
+      <div id="cartList"></div>
+      <button id="sendOrderButton" class="primary">注文する</button>
     </div>
+  </div>
+</section>
 
-    <div id="menuList" class="menu-grid"></div>
-  </section>
+<section id="receivePage" class="page">
+  <div class="top-menu">
+    <h2>注文受け取り画面</h2>
+    <button class="secondary mini backHome">ホーム</button>
+  </div>
 
-  <section id="registerPage" class="page">
-    <div class="panel center-panel">
-      <h2>カクテル登録</h2>
+  <div id="orderReceiveList" class="order-list"></div>
+</section>
 
-      <form id="cocktailForm">
-        <input type="hidden" id="editCocktailId" />
+<section id="optionPage" class="page">
+  <div class="panel center-panel">
+    <h2>選択項目管理</h2>
 
-        <label>カテゴリー</label>
-        <select id="category" required>
-          <option value="" selected disabled>選択してください</option>
-          <option>ノーマル</option>
-          <option>キャストオリカク</option>
-          <option>スタッフオリカク</option>
-        </select>
+    <label>選択項目名</label>
+    <input id="optionGroupName" placeholder="例：リキュール①" />
+    <button id="addOptionGroupButton" class="primary">項目を追加</button>
 
-        <label>カクテル名</label>
-        <input id="name" required />
+    <hr />
 
-        <label>味イメージ</label>
-        <select id="taste" required>
-          <option value="" selected disabled>選択してください</option>
-          <option>甘い</option>
-          <option>超甘い</option>
-          <option>さっぱり</option>
-          <option>フルーティー</option>
-          <option>ミルク系</option>
-          <option>炭酸系</option>
-          <option>苦め</option>
-          <option>大人っぽい</option>
-          <option>デザート系</option>
-          <option>コーヒー系</option>
-          <option>チョコ系</option>
-          <option>紅茶系</option>
-          <option>和風</option>
-          <option>かわいい系</option>
-          <option>映え系</option>
-          <option>ネタ系</option>
-          <option>危険そう</option>
-        </select>
+    <label>項目選択</label>
+    <select id="optionGroupSelect"></select>
 
-        <label>材料・使用ボトル</label>
-        <textarea id="bottles"></textarea>
+    <label>選択肢名</label>
+    <input id="optionChoiceName" placeholder="例：紅" />
 
-        <label>作り方</label>
-        <textarea id="recipe"></textarea>
+    <label>ふりがな・補足</label>
+    <input id="optionChoiceSubName" placeholder="例：コウ" />
 
-        <label>説明</label>
-        <textarea id="description"></textarea>
+    <button id="addOptionChoiceButton" class="primary">選択肢を追加</button>
 
-        <label>画像URL</label>
-        <input id="image" />
+    <div id="optionManageList"></div>
 
-        <button type="submit" class="primary" id="submitButton">登録する</button>
-      </form>
+    <button class="secondary backHome">ホーム</button>
+  </div>
+</section>
 
-      <button id="backToListButton" class="secondary">一覧に戻る</button>
-    </div>
-  </section>
+<section id="tablePage" class="page">
+  <div class="panel center-panel">
+    <h2>卓管理</h2>
 
-  <script type="module" src="遊び.js"></script>
+    <label>卓名</label>
+    <input id="tableNameInput" placeholder="例：1番卓 / A卓 / VIP" />
+
+    <button id="addTableButton" class="primary">卓を追加</button>
+
+    <div id="tableManageList"></div>
+
+    <button class="secondary backHome">ホーム</button>
+  </div>
+</section>
+
+<script type="module" src="遊び.js"></script>
 </body>
 </html>
