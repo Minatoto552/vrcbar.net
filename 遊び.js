@@ -41,35 +41,64 @@ function esc(text) {
     .replaceAll("'", "&#039;");
 }
 
+/* =========================
+   グループ
+========================= */
+
 async function loadGroups() {
-  const { data, error } = await supabase.from("groups").select("*").order("id");
+  const { data, error } = await supabase
+    .from("groups")
+    .select("*");
+
   if (error) {
+    console.error("グループ取得エラー", error);
     alert("グループ読み込み失敗");
-    console.error(error);
     return [];
   }
-  return data;
+
+  return data || [];
 }
 
 async function renderGroupOptions() {
   const groups = await loadGroups();
 
-  $("groupSelect").innerHTML = `<option value="">グループを選択してください</option>`;
-  $("adminGroupSelect").innerHTML = `<option value="">グループを選択してください</option>`;
+  $("groupSelect").innerHTML =
+    `<option value="">グループを選択してください</option>`;
+
+  $("adminGroupSelect").innerHTML =
+    `<option value="">グループを選択してください</option>`;
 
   groups.forEach(group => {
-    $("groupSelect").innerHTML += `<option value="${group.id}">${esc(group.name)}</option>`;
-    $("adminGroupSelect").innerHTML += `<option value="${group.id}">${esc(group.name)}</option>`;
+    $("groupSelect").innerHTML += `
+      <option value="${group.id}">
+        ${esc(group.name)}
+      </option>
+    `;
+
+    $("adminGroupSelect").innerHTML += `
+      <option value="${group.id}">
+        ${esc(group.name)}
+      </option>
+    `;
   });
 }
 
-$("goCreateGroupButton").onclick = () => showPage("createGroup");
-$("backToLoginButton").onclick = () => showPage("login");
+$("goCreateGroupButton").onclick = () => {
+  showPage("createGroup");
+};
+
+$("backToLoginButton").onclick = () => {
+  showPage("login");
+};
+
 $("goAdminButton").onclick = async () => {
   await renderGroupOptions();
   showPage("admin");
 };
-$("backToLoginFromAdminButton").onclick = () => showPage("login");
+
+$("backToLoginFromAdminButton").onclick = () => {
+  showPage("login");
+};
 
 $("createGroupButton").onclick = async () => {
   const name = $("newGroupName").value.trim();
@@ -80,24 +109,42 @@ $("createGroupButton").onclick = async () => {
     return;
   }
 
-  const { data: exists } = await supabase.from("groups").select("*").eq("name", name);
+  const { data: exists, error: checkError } = await supabase
+    .from("groups")
+    .select("*")
+    .eq("name", name);
 
-  if (exists.length > 0) {
+  if (checkError) {
+    console.error(checkError);
+    alert("グループ確認に失敗しました");
+    return;
+  }
+
+  if (exists && exists.length > 0) {
     alert("同じ名前のグループがあります");
     return;
   }
 
-  const { error } = await supabase.from("groups").insert([{ name, password }]);
+  const { error } = await supabase
+    .from("groups")
+    .insert([
+      {
+        name: name,
+        password: password
+      }
+    ]);
 
   if (error) {
-    alert("グループ作成失敗");
     console.error(error);
+    alert("グループ作成失敗");
     return;
   }
 
   $("newGroupName").value = "";
   $("newGroupPassword").value = "";
+
   await renderGroupOptions();
+
   alert("グループを作成しました");
   showPage("login");
 };
@@ -118,6 +165,7 @@ $("loginButton").onclick = async () => {
     .single();
 
   if (error || !data) {
+    console.error(error);
     alert("グループが見つかりません");
     return;
   }
@@ -129,11 +177,18 @@ $("loginButton").onclick = async () => {
 
   currentGroupId = String(data.id);
   currentGroupName = data.name;
-  $("currentGroupText").textContent = "現在のグループ：" + currentGroupName;
+
+  $("currentGroupText").textContent =
+    "現在のグループ：" + currentGroupName;
+
   $("groupPassword").value = "";
 
   showPage("home");
 };
+
+/* =========================
+   管理人メニュー
+========================= */
 
 $("changeGroupPasswordButton").onclick = async () => {
   if ($("adminPassword").value.trim() !== ADMIN_PASSWORD) {
@@ -149,11 +204,16 @@ $("changeGroupPasswordButton").onclick = async () => {
     return;
   }
 
-  const { error } = await supabase.from("groups").update({ password: newPass }).eq("id", groupId);
+  const { error } = await supabase
+    .from("groups")
+    .update({
+      password: newPass
+    })
+    .eq("id", groupId);
 
   if (error) {
-    alert("変更失敗");
     console.error(error);
+    alert("変更失敗");
     return;
   }
 
@@ -168,9 +228,15 @@ $("deleteGroupButton").onclick = async () => {
   }
 
   const groupId = $("adminGroupSelect").value;
-  if (!groupId) return alert("グループを選択してください");
 
-  if (!confirm("このグループを削除しますか？")) return;
+  if (!groupId) {
+    alert("グループを選択してください");
+    return;
+  }
+
+  if (!confirm("このグループを削除しますか？")) {
+    return;
+  }
 
   await supabase.from("orders").delete().eq("group_id", groupId);
   await supabase.from("cocktails").delete().eq("group_id", groupId);
@@ -178,20 +244,30 @@ $("deleteGroupButton").onclick = async () => {
   await supabase.from("option_groups").delete().eq("group_id", groupId);
   await supabase.from("tables").delete().eq("group_id", groupId);
 
-  const { error } = await supabase.from("groups").delete().eq("id", groupId);
+  const { error } = await supabase
+    .from("groups")
+    .delete()
+    .eq("id", groupId);
 
   if (error) {
-    alert("削除失敗");
     console.error(error);
+    alert("削除失敗");
     return;
   }
 
   await renderGroupOptions();
+
   alert("削除しました");
 };
 
+/* =========================
+   画面移動
+========================= */
+
 document.querySelectorAll(".backHome").forEach(btn => {
-  btn.onclick = () => showPage("home");
+  btn.onclick = () => {
+    showPage("home");
+  };
 });
 
 $("logoutButton").onclick = () => {
@@ -231,6 +307,10 @@ $("goTableButton").onclick = async () => {
   showPage("table");
 };
 
+/* =========================
+   メニュー登録・一覧
+========================= */
+
 function resetRegisterForm() {
   $("cocktailForm").reset();
   $("editCocktailId").value = "";
@@ -250,7 +330,7 @@ async function loadMenus() {
     return [];
   }
 
-  return data;
+  return data || [];
 }
 
 async function renderMenus() {
@@ -258,13 +338,20 @@ async function renderMenus() {
   const keyword = $("search").value.toLowerCase();
 
   const filtered = menus.filter(menu => {
-    return `${menu.name} ${menu.item_type} ${menu.category} ${menu.taste} ${menu.description}`
+    return `
+      ${menu.name || ""}
+      ${menu.item_type || ""}
+      ${menu.category || ""}
+      ${menu.taste || ""}
+      ${menu.description || ""}
+    `
       .toLowerCase()
       .includes(keyword);
   });
 
   if (filtered.length === 0) {
-    $("menuList").innerHTML = `<div class="card">まだ登録がありません。</div>`;
+    $("menuList").innerHTML =
+      `<div class="card">まだ登録がありません。</div>`;
     return;
   }
 
@@ -273,19 +360,29 @@ async function renderMenus() {
       <div class="card-image">
         ${menu.image ? `<img src="${esc(menu.image)}">` : "🍹"}
       </div>
+
       <h3>${esc(menu.name)}</h3>
+
       <span class="tag">${esc(menu.item_type || "カクテル")}</span>
       <span class="tag">${esc(menu.category)}</span>
       <span class="tag">${esc(menu.taste)}</span>
+
       <p>${esc(menu.description)}</p>
+
       <details>
         <summary>詳細を見る</summary>
         <p><b>内容：</b><br>${esc(menu.bottles)}</p>
         <p><b>作り方：</b><br>${esc(menu.recipe)}</p>
       </details>
+
       <div class="actions">
-        <button class="edit" onclick="editMenu('${menu.id}')">編集</button>
-        <button class="delete" onclick="deleteMenu('${menu.id}')">削除</button>
+        <button class="edit" onclick="editMenu('${menu.id}')">
+          編集
+        </button>
+
+        <button class="delete" onclick="deleteMenu('${menu.id}')">
+          削除
+        </button>
       </div>
     </div>
   `).join("");
@@ -295,6 +392,11 @@ $("search").addEventListener("input", renderMenus);
 
 $("cocktailForm").onsubmit = async event => {
   event.preventDefault();
+
+  if (!currentGroupId) {
+    alert("先にログインしてください");
+    return;
+  }
 
   const editId = $("editCocktailId").value;
 
@@ -311,12 +413,17 @@ $("cocktailForm").onsubmit = async event => {
   };
 
   const result = editId
-    ? await supabase.from("cocktails").update(data).eq("id", editId)
-    : await supabase.from("cocktails").insert([data]);
+    ? await supabase
+        .from("cocktails")
+        .update(data)
+        .eq("id", editId)
+    : await supabase
+        .from("cocktails")
+        .insert([data]);
 
   if (result.error) {
-    alert("保存失敗。cocktailsに item_type カラムがあるか確認してね");
     console.error(result.error);
+    alert("保存失敗。cocktailsに item_type カラムがあるか確認してね");
     return;
   }
 
@@ -326,9 +433,17 @@ $("cocktailForm").onsubmit = async event => {
 };
 
 window.editMenu = async id => {
-  const { data, error } = await supabase.from("cocktails").select("*").eq("id", id).single();
+  const { data, error } = await supabase
+    .from("cocktails")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (error) return alert("取得失敗");
+  if (error || !data) {
+    console.error(error);
+    alert("取得失敗");
+    return;
+  }
 
   $("editCocktailId").value = data.id;
   $("itemType").value = data.item_type || "カクテル";
@@ -345,33 +460,285 @@ window.editMenu = async id => {
 };
 
 window.deleteMenu = async id => {
-  if (!confirm("削除しますか？")) return;
-  const { error } = await supabase.from("cocktails").delete().eq("id", id);
-  if (error) return alert("削除失敗");
+  if (!confirm("削除しますか？")) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("cocktails")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
   await renderMenus();
 };
 
+/* =========================
+   卓管理
+========================= */
+
 async function loadTables() {
-  const { data } = await supabase.from("tables").select("*").eq("group_id", currentGroupId).order("id");
+  const { data, error } = await supabase
+    .from("tables")
+    .select("*")
+    .eq("group_id", currentGroupId);
+
+  if (error) {
+    console.error(error);
+    alert("卓の読み込みに失敗しました");
+    return [];
+  }
+
   return data || [];
 }
 
+$("addTableButton").onclick = async () => {
+  const name = $("tableNameInput").value.trim();
+
+  if (!name) {
+    alert("卓名を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("tables")
+    .insert([
+      {
+        group_id: currentGroupId,
+        name: name
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("追加失敗");
+    return;
+  }
+
+  $("tableNameInput").value = "";
+  await renderTableManagePage();
+};
+
+async function renderTableManagePage() {
+  const tables = await loadTables();
+
+  if (tables.length === 0) {
+    $("tableManageList").innerHTML =
+      `<div class="manage-item">まだ卓がありません。</div>`;
+    return;
+  }
+
+  $("tableManageList").innerHTML = tables.map(table => `
+    <div class="manage-item">
+      ${esc(table.name)}
+      <button class="delete mini" onclick="deleteTable('${table.id}')">
+        削除
+      </button>
+    </div>
+  `).join("");
+}
+
+window.deleteTable = async id => {
+  const { error } = await supabase
+    .from("tables")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
+  await renderTableManagePage();
+};
+
+/* =========================
+   選択項目管理
+========================= */
+
 async function loadOptions() {
-  const { data: groups } = await supabase
+  const { data: groups, error: groupError } = await supabase
     .from("option_groups")
     .select("*")
-    .eq("group_id", currentGroupId)
-    .order("id");
+    .eq("group_id", currentGroupId);
 
-  const { data: choices } = await supabase
+  const { data: choices, error: choiceError } = await supabase
     .from("option_choices")
     .select("*")
-    .eq("group_id", currentGroupId)
-    .order("id");
+    .eq("group_id", currentGroupId);
+
+  if (groupError || choiceError) {
+    console.error(groupError || choiceError);
+    alert("選択項目の読み込みに失敗しました");
+    optionGroupsCache = [];
+    optionChoicesCache = [];
+    return;
+  }
 
   optionGroupsCache = groups || [];
   optionChoicesCache = choices || [];
 }
+
+$("addOptionGroupButton").onclick = async () => {
+  const name = $("optionGroupName").value.trim();
+
+  if (!name) {
+    alert("項目名を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("option_groups")
+    .insert([
+      {
+        group_id: currentGroupId,
+        name: name
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("追加失敗");
+    return;
+  }
+
+  $("optionGroupName").value = "";
+  await renderOptionManagePage();
+};
+
+$("addOptionChoiceButton").onclick = async () => {
+  const optionGroupId = $("optionGroupSelect").value;
+  const name = $("optionChoiceName").value.trim();
+  const subName = $("optionChoiceSubName").value.trim();
+
+  if (!optionGroupId || !name) {
+    alert("項目と選択肢名を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("option_choices")
+    .insert([
+      {
+        group_id: currentGroupId,
+        option_group_id: optionGroupId,
+        name: name,
+        sub_name: subName
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("追加失敗");
+    return;
+  }
+
+  $("optionChoiceName").value = "";
+  $("optionChoiceSubName").value = "";
+
+  await renderOptionManagePage();
+};
+
+async function renderOptionManagePage() {
+  await loadOptions();
+
+  $("optionGroupSelect").innerHTML =
+    `<option value="">項目を選択してください</option>`;
+
+  optionGroupsCache.forEach(group => {
+    $("optionGroupSelect").innerHTML += `
+      <option value="${group.id}">
+        ${esc(group.name)}
+      </option>
+    `;
+  });
+
+  if (optionGroupsCache.length === 0) {
+    $("optionManageList").innerHTML =
+      `<div class="manage-item">まだ選択項目がありません。</div>`;
+    return;
+  }
+
+  $("optionManageList").innerHTML = optionGroupsCache.map(group => {
+    const choices = optionChoicesCache.filter(choice =>
+      String(choice.option_group_id) === String(group.id)
+    );
+
+    return `
+      <div class="manage-item">
+        <h3>${esc(group.name)}</h3>
+
+        ${
+          choices.length === 0
+            ? `<p>まだ選択肢がありません。</p>`
+            : choices.map(choice => `
+                <p>
+                  ${esc(choice.name)}
+                  ${choice.sub_name ? " / " + esc(choice.sub_name) : ""}
+
+                  <button class="delete mini" onclick="deleteOptionChoice('${choice.id}')">
+                    削除
+                  </button>
+                </p>
+              `).join("")
+        }
+
+        <button class="delete mini" onclick="deleteOptionGroup('${group.id}')">
+          項目ごと削除
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+window.deleteOptionChoice = async id => {
+  const { error } = await supabase
+    .from("option_choices")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
+  await renderOptionManagePage();
+};
+
+window.deleteOptionGroup = async id => {
+  if (!confirm("項目ごと削除しますか？")) {
+    return;
+  }
+
+  await supabase
+    .from("option_choices")
+    .delete()
+    .eq("option_group_id", id);
+
+  const { error } = await supabase
+    .from("option_groups")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
+  await renderOptionManagePage();
+};
+
+/* =========================
+   注文画面
+========================= */
 
 async function renderOrderPage() {
   cart = [];
@@ -379,24 +746,34 @@ async function renderOrderPage() {
 
   const tables = await loadTables();
   const menus = await loadMenus();
+
   await loadOptions();
 
-  $("orderTableSelect").innerHTML = `<option value="">卓を選択してください</option>`;
+  $("orderTableSelect").innerHTML =
+    `<option value="">卓を選択してください</option>`;
+
   tables.forEach(table => {
-    $("orderTableSelect").innerHTML += `<option>${esc(table.name)}</option>`;
+    $("orderTableSelect").innerHTML += `
+      <option>${esc(table.name)}</option>
+    `;
   });
 
   $("orderOptions").innerHTML = optionGroupsCache.map(group => {
-    const choices = optionChoicesCache.filter(choice => String(choice.option_group_id) === String(group.id));
+    const choices = optionChoicesCache.filter(choice =>
+      String(choice.option_group_id) === String(group.id)
+    );
 
     return `
       <div class="option-box">
         <label>${esc(group.name)}</label>
+
         <select class="order-option" data-name="${esc(group.name)}">
           <option value="">選択なし</option>
+
           ${choices.map(choice => `
             <option value="${esc(choice.name)}">
-              ${esc(choice.name)}${choice.sub_name ? " / " + esc(choice.sub_name) : ""}
+              ${esc(choice.name)}
+              ${choice.sub_name ? " / " + esc(choice.sub_name) : ""}
             </option>
           `).join("")}
         </select>
@@ -404,16 +781,28 @@ async function renderOrderPage() {
     `;
   }).join("");
 
+  if (menus.length === 0) {
+    $("orderItemList").innerHTML =
+      `<div class="card">まだ商品が登録されていません。</div>`;
+    return;
+  }
+
   $("orderItemList").innerHTML = menus.map(item => `
     <div class="card">
       <div class="card-image">
         ${item.image ? `<img src="${esc(item.image)}">` : "🍹"}
       </div>
+
       <h3>${esc(item.name)}</h3>
+
       <span class="tag">${esc(item.item_type || "カクテル")}</span>
       <span class="tag">${esc(item.category)}</span>
+
       <p>${esc(item.description)}</p>
-      <button class="primary" onclick="addToCart('${item.id}')">カートに追加</button>
+
+      <button class="primary" onclick="addToCart('${item.id}')">
+        カートに追加
+      </button>
     </div>
   `).join("");
 }
@@ -421,7 +810,10 @@ async function renderOrderPage() {
 window.addToCart = async id => {
   const menus = await loadMenus();
   const item = menus.find(menu => String(menu.id) === String(id));
-  if (!item) return;
+
+  if (!item) {
+    return;
+  }
 
   cart.push({
     id: item.id,
@@ -442,7 +834,10 @@ function renderCart() {
     <div class="cart-item">
       <b>${esc(item.name)}</b><br>
       <span>${esc(item.item_type)}</span>
-      <button class="delete mini" onclick="removeCartItem(${index})">削除</button>
+
+      <button class="delete mini" onclick="removeCartItem(${index})">
+        削除
+      </button>
     </div>
   `).join("");
 }
@@ -456,11 +851,23 @@ $("sendOrderButton").onclick = async () => {
   const tableName = $("orderTableSelect").value;
   const customerName = $("customerName").value.trim();
 
-  if (!tableName) return alert("卓を選択してください");
-  if (!customerName) return alert("名前を入力してください");
-  if (cart.length === 0) return alert("カートに商品を入れてください");
+  if (!tableName) {
+    alert("卓を選択してください");
+    return;
+  }
+
+  if (!customerName) {
+    alert("名前を入力してください");
+    return;
+  }
+
+  if (cart.length === 0) {
+    alert("カートに商品を入れてください");
+    return;
+  }
 
   const selectedOptions = [];
+
   document.querySelectorAll(".order-option").forEach(select => {
     if (select.value) {
       selectedOptions.push({
@@ -470,73 +877,100 @@ $("sendOrderButton").onclick = async () => {
     }
   });
 
-  const { error } = await supabase.from("orders").insert([{
-    group_id: currentGroupId,
-    table_name: tableName,
-    customer_name: customerName,
-    items: cart,
-    options: selectedOptions,
-    memo: $("orderMemo").value,
-    status: "pending"
-  }]);
+  const { error } = await supabase
+    .from("orders")
+    .insert([
+      {
+        group_id: currentGroupId,
+        table_name: tableName,
+        customer_name: customerName,
+        items: cart,
+        options: selectedOptions,
+        memo: $("orderMemo").value,
+        status: "pending"
+      }
+    ]);
 
   if (error) {
-    alert("注文失敗");
     console.error(error);
+    alert("注文失敗");
     return;
   }
 
   alert("注文しました");
+
   cart = [];
   $("customerName").value = "";
   $("orderMemo").value = "";
+
   renderCart();
 };
+
+/* =========================
+   受け取り画面
+========================= */
 
 async function renderReceivePage() {
   const { data, error } = await supabase
     .from("orders")
     .select("*")
     .eq("group_id", currentGroupId)
-    .neq("status", "done")
-    .order("id", { ascending: true });
+    .neq("status", "done");
 
   if (error) {
-    alert("注文読み込み失敗");
     console.error(error);
+    alert("注文読み込み失敗");
     return;
   }
 
   if (!data || data.length === 0) {
-    $("orderReceiveList").innerHTML = `<div class="card">現在の注文はありません。</div>`;
+    $("orderReceiveList").innerHTML =
+      `<div class="card">現在の注文はありません。</div>`;
     return;
   }
 
   $("orderReceiveList").innerHTML = data.map(order => {
-    const statusText = order.status === "making" ? "対応中" : "未対応";
-    const nextText = order.status === "making" ? "お届け済みにする" : "対応中にする";
-    const statusClass = order.status === "making" ? "making" : "pending";
-    const buttonClass = order.status === "making" ? "status-making" : "status-pending";
+    const statusText =
+      order.status === "making" ? "対応中" : "未対応";
+
+    const nextText =
+      order.status === "making"
+        ? "お届け済みにする"
+        : "対応中にする";
+
+    const statusClass =
+      order.status === "making" ? "making" : "pending";
+
+    const buttonClass =
+      order.status === "making" ? "status-making" : "status-pending";
 
     return `
       <div class="order-card ${statusClass}">
         <h3>卓：${esc(order.table_name)}</h3>
+
         <p><b>名前：</b>${esc(order.customer_name)}</p>
 
         <p><b>商品：</b></p>
         <ul>
-          ${(order.items || []).map(item => `<li>${esc(item.name)} / ${esc(item.item_type)}</li>`).join("")}
+          ${(order.items || []).map(item => `
+            <li>${esc(item.name)} / ${esc(item.item_type)}</li>
+          `).join("")}
         </ul>
 
         <p><b>選択：</b></p>
         <ul>
-          ${(order.options || []).map(opt => `<li>${esc(opt.name)}：${esc(opt.value)}</li>`).join("")}
+          ${(order.options || []).map(opt => `
+            <li>${esc(opt.name)}：${esc(opt.value)}</li>
+          `).join("")}
         </ul>
 
         <p><b>メモ：</b>${esc(order.memo)}</p>
         <p><b>状態：</b>${statusText}</p>
 
-        <button class="status-button ${buttonClass}" onclick="advanceOrderStatus('${order.id}', '${order.status}')">
+        <button
+          class="status-button ${buttonClass}"
+          onclick="advanceOrderStatus('${order.id}', '${order.status}')"
+        >
           ${nextText}
         </button>
       </div>
@@ -545,126 +979,28 @@ async function renderReceivePage() {
 }
 
 window.advanceOrderStatus = async (id, status) => {
-  const nextStatus = status === "pending" ? "making" : "done";
+  const nextStatus =
+    status === "pending" ? "making" : "done";
 
   const { error } = await supabase
     .from("orders")
-    .update({ status: nextStatus })
+    .update({
+      status: nextStatus
+    })
     .eq("id", id);
 
   if (error) {
-    alert("状態変更失敗");
     console.error(error);
+    alert("状態変更失敗");
     return;
   }
 
   await renderReceivePage();
 };
 
-$("addOptionGroupButton").onclick = async () => {
-  const name = $("optionGroupName").value.trim();
-  if (!name) return alert("項目名を入力してください");
-
-  const { error } = await supabase.from("option_groups").insert([{
-    group_id: currentGroupId,
-    name
-  }]);
-
-  if (error) return alert("追加失敗");
-
-  $("optionGroupName").value = "";
-  await renderOptionManagePage();
-};
-
-$("addOptionChoiceButton").onclick = async () => {
-  const optionGroupId = $("optionGroupSelect").value;
-  const name = $("optionChoiceName").value.trim();
-  const subName = $("optionChoiceSubName").value.trim();
-
-  if (!optionGroupId || !name) return alert("項目と選択肢名を入力してください");
-
-  const { error } = await supabase.from("option_choices").insert([{
-    group_id: currentGroupId,
-    option_group_id: optionGroupId,
-    name,
-    sub_name: subName
-  }]);
-
-  if (error) return alert("追加失敗");
-
-  $("optionChoiceName").value = "";
-  $("optionChoiceSubName").value = "";
-  await renderOptionManagePage();
-};
-
-async function renderOptionManagePage() {
-  await loadOptions();
-
-  $("optionGroupSelect").innerHTML = `<option value="">項目を選択してください</option>`;
-  optionGroupsCache.forEach(group => {
-    $("optionGroupSelect").innerHTML += `<option value="${group.id}">${esc(group.name)}</option>`;
-  });
-
-  $("optionManageList").innerHTML = optionGroupsCache.map(group => {
-    const choices = optionChoicesCache.filter(choice => String(choice.option_group_id) === String(group.id));
-
-    return `
-      <div class="manage-item">
-        <h3>${esc(group.name)}</h3>
-        ${choices.map(choice => `
-          <p>
-            ${esc(choice.name)} ${choice.sub_name ? " / " + esc(choice.sub_name) : ""}
-            <button class="delete mini" onclick="deleteOptionChoice('${choice.id}')">削除</button>
-          </p>
-        `).join("")}
-        <button class="delete mini" onclick="deleteOptionGroup('${group.id}')">項目ごと削除</button>
-      </div>
-    `;
-  }).join("");
-}
-
-window.deleteOptionChoice = async id => {
-  await supabase.from("option_choices").delete().eq("id", id);
-  await renderOptionManagePage();
-};
-
-window.deleteOptionGroup = async id => {
-  if (!confirm("項目ごと削除しますか？")) return;
-  await supabase.from("option_choices").delete().eq("option_group_id", id);
-  await supabase.from("option_groups").delete().eq("id", id);
-  await renderOptionManagePage();
-};
-
-$("addTableButton").onclick = async () => {
-  const name = $("tableNameInput").value.trim();
-  if (!name) return alert("卓名を入力してください");
-
-  const { error } = await supabase.from("tables").insert([{
-    group_id: currentGroupId,
-    name
-  }]);
-
-  if (error) return alert("追加失敗");
-
-  $("tableNameInput").value = "";
-  await renderTableManagePage();
-};
-
-async function renderTableManagePage() {
-  const tables = await loadTables();
-
-  $("tableManageList").innerHTML = tables.map(table => `
-    <div class="manage-item">
-      ${esc(table.name)}
-      <button class="delete mini" onclick="deleteTable('${table.id}')">削除</button>
-    </div>
-  `).join("");
-}
-
-window.deleteTable = async id => {
-  await supabase.from("tables").delete().eq("id", id);
-  await renderTableManagePage();
-};
+/* =========================
+   初期化
+========================= */
 
 await renderGroupOptions();
 showPage("login");
