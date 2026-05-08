@@ -24,7 +24,6 @@
 <section id="loginPage" class="page active">
   <div class="panel center-panel">
     <h2>グループを開く</h2>
-
     <label>グループ選択</label>
     <select id="groupSelect"></select>
 
@@ -33,14 +32,12 @@
 
     <button id="loginButton" class="primary">ログイン</button>
     <button id="goCreateGroupButton" class="small-link-button">＋ グループを作成する</button>
-    <button id="goAdminButton" class="small-link-button">管理人メニュー</button>
   </div>
 </section>
 
 <section id="createGroupPage" class="page">
   <div class="panel center-panel">
     <h2>グループ作成</h2>
-
     <label>グループ名</label>
     <input id="newGroupName" placeholder="例：Nakiya Bar" />
 
@@ -52,10 +49,39 @@
   </div>
 </section>
 
+<section id="homePage" class="page">
+  <div class="top-menu">
+    <p id="currentGroupText">現在のグループ：</p>
+    <button id="logoutButton" class="secondary mini">ログアウト</button>
+  </div>
+
+  <div class="menu-buttons">
+    <button id="homeOrderButton" class="primary">注文画面</button>
+    <button id="homeReceiveButton" class="primary">受け取り画面</button>
+    <button id="homeHistoryButton" class="primary">注文履歴</button>
+    <button id="homeListButton" class="primary">メニュー一覧</button>
+    <button id="homeSettingButton" class="secondary">設定</button>
+  </div>
+</section>
+
+<section id="settingPage" class="page">
+  <div class="top-menu">
+    <h2>設定</h2>
+    <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="menu-buttons">
+    <button id="settingRegisterButton" class="primary">メニュー登録</button>
+    <button id="settingOptionButton" class="primary">選択項目管理</button>
+    <button id="settingTableButton" class="primary">卓管理</button>
+    <button id="settingNameButton" class="primary">注文者名管理</button>
+    <button id="settingAdminButton" class="danger-button">管理人メニュー</button>
+  </div>
+</section>
+
 <section id="adminPage" class="page">
   <div class="panel center-panel">
     <h2>管理人メニュー</h2>
-
     <label>管理人パスワード</label>
     <input id="adminPassword" type="password" />
 
@@ -67,26 +93,7 @@
 
     <button id="changeGroupPasswordButton" class="primary">パスワード変更</button>
     <button id="deleteGroupButton" class="danger-button">グループ削除</button>
-    <button id="backToLoginFromAdminButton" class="secondary">戻る</button>
-  </div>
-</section>
-
-<section id="homePage" class="page">
-  <div class="top-menu">
-    <p id="currentGroupText">現在のグループ：</p>
-    <button id="logoutButton" class="secondary mini">ログアウト</button>
-  </div>
-
-  <div class="menu-buttons">
-    <button id="goOrderButton" class="primary">注文画面</button>
-    <button id="goReceiveButton" class="primary">受け取り画面</button>
-    <button id="goHistoryButton" class="primary">注文履歴</button>
-    <button id="goEmergencyButton" class="danger-button">🚨 緊急通知</button>
-    <button id="goListButton" class="primary">メニュー一覧</button>
-    <button id="goRegisterButton" class="primary">メニュー登録</button>
-    <button id="goOptionButton" class="primary">選択項目管理</button>
-    <button id="goTableButton" class="primary">卓管理</button>
-    <button id="goNameButton" class="primary">注文者名管理</button>
+    <button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
@@ -94,6 +101,13 @@
   <div class="top-menu">
     <h2>メニュー一覧</h2>
     <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="page-nav">
+    <button class="navOrder">注文</button>
+    <button class="navReceive">受け取り</button>
+    <button class="navHistory">履歴</button>
+    <button class="navList active-nav">メニュー一覧</button>
   </div>
 
   <div class="tools">
@@ -161,7 +175,7 @@
       <button type="submit" class="primary" id="submitButton">登録する</button>
     </form>
 
-    <button class="secondary backHome">ホーム</button>
+    <button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
@@ -169,6 +183,14 @@
   <div class="top-menu">
     <h2>注文画面</h2>
     <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="page-nav">
+    <button class="navOrder active-nav">注文</button>
+    <button class="navReceive">受け取り</button>
+    <button class="navHistory">履歴</button>
+    <button class="navList">メニュー一覧</button>
+    <button id="orderEmergencyButton" class="danger-mini">🚨 緊急</button>
   </div>
 
   <div class="order-layout">
@@ -221,6 +243,13 @@
     <button class="secondary mini backHome">ホーム</button>
   </div>
 
+  <div class="page-nav">
+    <button class="navOrder">注文</button>
+    <button class="navReceive active-nav">受け取り</button>
+    <button class="navHistory">履歴</button>
+    <button class="navList">メニュー一覧</button>
+  </div>
+
   <div id="orderReceiveList" class="order-list"></div>
 </section>
 
@@ -228,6 +257,13 @@
   <div class="top-menu">
     <h2>注文履歴</h2>
     <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="page-nav">
+    <button class="navOrder">注文</button>
+    <button class="navReceive">受け取り</button>
+    <button class="navHistory active-nav">履歴</button>
+    <button class="navList">メニュー一覧</button>
   </div>
 
   <div class="panel center-panel">
@@ -240,7 +276,7 @@
 <section id="emergencyPage" class="page">
   <div class="top-menu">
     <h2>緊急通知</h2>
-    <button class="secondary mini backHome">ホーム</button>
+    <button class="secondary mini backOrder">注文画面へ</button>
   </div>
 
   <div class="panel center-panel">
@@ -277,7 +313,7 @@
 
     <div id="optionManageList"></div>
 
-    <button class="secondary backHome">ホーム</button>
+    <button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
@@ -292,7 +328,7 @@
 
     <div id="tableManageList"></div>
 
-    <button class="secondary backHome">ホーム</button>
+    <button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
@@ -307,10 +343,10 @@
 
     <div id="orderNameManageList"></div>
 
-    <button class="secondary backHome">ホーム</button>
+    <button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
-<script type="module" src="./遊び.js?v=30"></script>
+<script type="module" src="./遊び.js?v=40"></script>
 </body>
 </html>
