@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>VRC Cocktail Menu</title>
+
+  <link rel="stylesheet" href="遊び.css" />
+</head>
+<body>
+
+  <header>
+    <h1>🍸 VRC Cocktail Menu</h1>
+    <p>VRCバー向けのカクテルレシピ管理サイト</p>
+  </header>
+
+  <!-- ログインページ -->
+  <section id="loginPage" class="page active">
+    <div class="panel center-panel">
+
+      <h2>グループを開く</h2>
+
+      <label>グループ選択</label>
+      <select id="groupSelect">
+        <option value="">
+          グループを選択してください
+        </option>
+      </select>
+
+      <label>グループパスワード</label>
+      <input
+        id="groupPassword"
+        type="password"
+        placeholder="パスワードを入力"
+      />
+
+      <button id="loginButton" class="primary">
+        ログイン
+      </button>
+
+      <button id="goCreateGroupButton" class="small-link-button">
+        ＋ グループを作成する
+      </button>
+
+      <button id="goAdminButton" class="small-link-button">
+        管理人メニュー
+      </button>
+
+    </div>
+  </section>
+
+  <!-- グループ作成ページ -->
+  <section id="createGroupPage" class="page">
+    <div class="panel center-panel">
+
+      <h2>グループ作成</h2>
+
+      <label>グループ名</label>
+      <input
+        id="newGroupName"
+        placeholder="例：パジャマBar"
+      />
+
+      <label>グループパスワード</label>
+      <input
+        id="newGroupPassword"
+        type="password"
+        placeholder="登録用パスワード"
+      />
+
+      <button id="createGroupButton" class="primary">
+        グループを作成
+      </button>
+
+      <button id="backToLoginButton" class="secondary">
+        ログイン画面に戻る
+      </button>
+
+    </div>
+  </section>
+
+  <!-- 管理人ページ -->
+  <section id="adminPage" class="page">
+    <div class="panel center-panel">
+
+      <h2>管理人メニュー</h2>
+
+      <label>管理人パスワード</label>
+      <input
+        id="adminPassword"
+        type="password"
+        placeholder="管理人パスワード"
+      />
+
+      <label>グループ選択</label>
+      <select id="adminGroupSelect">
+        <option value="">
+          グループを選択してください
+        </option>
+      </select>
+
+      <label>新しいグループパスワード</label>
+      <input
+        id="newPasswordForGroup"
+        type="password"
+        placeholder="変更する場合だけ入力"
+      />
+
+      <button id="changeGroupPasswordButton" class="primary">
+        グループパスワードを変更
+      </button>
+
+      <button id="deleteGroupButton" class="danger-button">
+        グループを削除
+      </button>
+
+      <button id="backToLoginFromAdminButton" class="secondary">
+        ログイン画面に戻る
+      </button>
+
+    </div>
+  </section>
+
+  <!-- カクテル一覧ページ -->
+  <section id="listPage" class="page">
+
+    <div class="top-menu">
+      <p id="currentGroupText">
+        現在のグループ：
+      </p>
+
+      <div>
+        <button id="goRegisterButton" class="primary mini">
+          カクテル登録
+        </button>
+
+        <button id="logoutButton" class="secondary mini">
+          ログアウト
+        </button>
+      </div>
+    </div>
+
+    <div class="tools">
+      <input id="search" placeholder="検索..." />
+    </div>
+
+    <div id="menuList" class="menu-grid"></div>
+
+  </section>
+
+  <!-- カクテル登録ページ -->
+  <section id="registerPage" class="page">
+    <div class="panel center-panel">
+
+      <h2>カクテル登録</h2>
+
+      <form id="cocktailForm">
+
+        <label>カテゴリー</label>
+        <select id="category" required>
+          <option value="" selected disabled>
+            選択してください
+          </option>
+
+          <option>ノーマル</option>
+          <option>キャストオリカク</option>
+          <option>スタッフオリカク</option>
+        </select>
+
+        <label>カクテル名</label>
+        <input id="name" required />
+
+        <label>味イメージ</label>
+        <select id="taste" required>
+          <option value="" selected disabled>
+            選択してください
+          </option>
+
+          <option>甘い</option>
+          <option>超甘い</option>
+          <option>さっぱり</option>
+          <option>フルーティー</option>
+          <option>ミルク系</option>
+          <option>炭酸系</option>
+          <option>苦め</option>
+          <option>大人っぽい</option>
+          <option>デザート系</option>
+          <option>コーヒー系</option>
+          <option>チョコ系</option>
+          <option>紅茶系</option>
+          <option>和風</option>
+          <option>かわいい系</option>
+          <option>映え系</option>
+          <option>ネタ系</option>
+          <option>危険そう</option>
+        </select>
+
+        <label>材料・使用ボトル</label>
+        <textarea id="bottles"></textarea>
+
+        <label>作り方</label>
+        <textarea id="recipe"></textarea>
+
+        <label>説明</label>
+        <textarea id="description"></textarea>
+
+        <label>画像URL</label>
+        <input id="image" />
+
+        <button type="submit" class="primary">
+          登録する
+        </button>
+
+      </form>
+
+      <button id="backToListButton" class="secondary">
+        一覧に戻る
+      </button>
+
+    </div>
+  </section>
+
+  <script src="遊び.js"></script>
+
+</body>
+</html>
