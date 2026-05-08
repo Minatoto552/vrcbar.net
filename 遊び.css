@@ -42,7 +42,7 @@ header h1 {
 
 .center-panel {
   max-width: 650px;
-  margin: 0 auto;
+  margin: 0 auto 20px;
 }
 
 label {
@@ -146,7 +146,7 @@ button {
 
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 18px;
 }
 
@@ -222,6 +222,11 @@ button {
   border: 2px solid #ffd86b;
 }
 
+.order-card.done {
+  border: 2px solid #7dffb2;
+  opacity: 0.8;
+}
+
 .status-button {
   width: 100%;
   padding: 12px;
@@ -245,6 +250,34 @@ button {
   padding: 12px;
   border-radius: 14px;
   background: rgba(255,255,255,0.08);
+}
+
+.tab-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.tab-button {
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: bold;
+  background: rgba(255,255,255,0.18);
+  color: white;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #ffd86b, #ff95d0);
+  color: #1d1027;
+}
+
+.order-tab {
+  display: none;
+}
+
+.order-tab.active {
+  display: block;
 }
 
 hr {
