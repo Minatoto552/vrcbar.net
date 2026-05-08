@@ -11,6 +11,9 @@ let currentGroupName = "";
 let cart = [];
 let optionGroupsCache = [];
 let optionChoicesCache = [];
+let selectedCustomerName = "";
+let ordersChannel = null;
+let emergencyChannel = null;
 
 const $ = id => document.getElementById(id);
 
@@ -24,8 +27,10 @@ const pages = {
   order: $("orderPage"),
   receive: $("receivePage"),
   history: $("historyPage"),
+  emergency: $("emergencyPage"),
   option: $("optionPage"),
   table: $("tablePage"),
+  name: $("namePage"),
 };
 
 function showPage(name) {
@@ -34,6 +39,10 @@ function showPage(name) {
   });
 
   pages[name].classList.add("active");
+}
+
+function isActive(name) {
+  return pages[name].classList.contains("active");
 }
 
 function esc(text) {
@@ -57,6 +66,76 @@ async function openPage(pageName, renderFunction) {
     }
   }
 }
+
+function stopRealtime() {
+  if (ordersChannel) {
+    supabase.removeChannel(ordersChannel);
+    ordersChannel = null;
+  }
+
+  if (emergencyChannel) {
+    supabase.removeChannel(emergencyChannel);
+    emergencyChannel = null;
+  }
+}
+
+function startRealtime() {
+  if (!currentGroupId) return;
+
+  stopRealtime();
+
+  ordersChannel = supabase
+    .channel("orders-" + currentGroupId)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: "group_id=eq." + currentGroupId
+      },
+      async () => {
+        if (isActive("receive")) {
+          await renderReceivePage();
+        }
+
+        if (isActive("history")) {
+          await renderHistoryPage();
+        }
+      }
+    )
+    .subscribe();
+
+  emergencyChannel = supabase
+    .channel("emergency-" + currentGroupId)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "emergency_calls",
+        filter: "group_id=eq." + currentGroupId
+      },
+      payload => {
+        showEmergencyPopup(payload.new);
+      }
+    )
+    .subscribe();
+}
+
+function showEmergencyPopup(data) {
+  $("emergencyText").innerHTML = `
+    ${esc(data.customer_name)} さん<br>
+    ${esc(data.table_name)}<br><br>
+    至急対応してください
+  `;
+
+  $("emergencyOverlay").classList.remove("hidden");
+}
+
+$("closeEmergencyButton").onclick = () => {
+  $("emergencyOverlay").classList.add("hidden");
+};
 
 async function loadGroups() {
   const { data, error } = await supabase
@@ -185,11 +264,14 @@ $("loginButton").onclick = async () => {
 
   currentGroupId = String(data.id);
   currentGroupName = data.name;
+  selectedCustomerName = "";
 
   $("currentGroupText").textContent =
     "現在のグループ：" + currentGroupName;
 
   $("groupPassword").value = "";
+
+  startRealtime();
 
   showPage("home");
 };
@@ -245,6 +327,8 @@ $("deleteGroupButton").onclick = async () => {
   await supabase.from("option_choices").delete().eq("group_id", groupId);
   await supabase.from("option_groups").delete().eq("group_id", groupId);
   await supabase.from("tables").delete().eq("group_id", groupId);
+  await supabase.from("order_names").delete().eq("group_id", groupId);
+  await supabase.from("emergency_calls").delete().eq("group_id", groupId);
 
   const { error } = await supabase
     .from("groups")
@@ -269,9 +353,13 @@ document.querySelectorAll(".backHome").forEach(btn => {
 });
 
 $("logoutButton").onclick = () => {
+  stopRealtime();
+
   currentGroupId = "";
   currentGroupName = "";
   cart = [];
+  selectedCustomerName = "";
+
   showPage("login");
 };
 
@@ -296,12 +384,20 @@ $("goHistoryButton").onclick = async () => {
   await openPage("history", renderHistoryPage);
 };
 
+$("goEmergencyButton").onclick = async () => {
+  await openPage("emergency", renderEmergencyPage);
+};
+
 $("goOptionButton").onclick = async () => {
   await openPage("option", renderOptionManagePage);
 };
 
 $("goTableButton").onclick = async () => {
   await openPage("table", renderTableManagePage);
+};
+
+$("goNameButton").onclick = async () => {
+  await openPage("name", renderOrderNameManagePage);
 };
 
 function resetRegisterForm() {
@@ -700,6 +796,160 @@ window.deleteOptionGroup = async id => {
   await renderOptionManagePage();
 };
 
+async function loadOrderNames() {
+  const { data, error } = await supabase
+    .from("order_names")
+    .select("*")
+    .eq("group_id", currentGroupId);
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  return data || [];
+}
+
+$("addOrderNameButton").onclick = async () => {
+  const name = $("orderNameInput").value.trim();
+
+  if (!name) {
+    alert("注文者名を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("order_names")
+    .insert([{ group_id: currentGroupId, name }]);
+
+  if (error) {
+    console.error(error);
+    alert("追加失敗");
+    return;
+  }
+
+  $("orderNameInput").value = "";
+  await renderOrderNameManagePage();
+};
+
+async function renderOrderNameManagePage() {
+  const names = await loadOrderNames();
+
+  if (names.length === 0) {
+    $("orderNameManageList").innerHTML =
+      `<div class="manage-item">まだ注文者名がありません。</div>`;
+    return;
+  }
+
+  $("orderNameManageList").innerHTML = names.map(item => `
+    <div class="manage-item">
+      ${esc(item.name)}
+      <button class="delete mini" onclick="deleteOrderName('${item.id}')">
+        削除
+      </button>
+    </div>
+  `).join("");
+}
+
+window.deleteOrderName = async id => {
+  const { error } = await supabase
+    .from("order_names")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
+  await renderOrderNameManagePage();
+};
+
+async function renderOrderNameSelect() {
+  const names = await loadOrderNames();
+
+  $("customerNameSelect").innerHTML =
+    `<option value="">名前を選択してください</option>`;
+
+  names.forEach(item => {
+    $("customerNameSelect").innerHTML += `
+      <option value="${esc(item.name)}">
+        ${esc(item.name)}
+      </option>
+    `;
+  });
+
+  if (selectedCustomerName) {
+    $("customerNameSelect").value = selectedCustomerName;
+  }
+
+  $("customerNameSelect").onchange = () => {
+    selectedCustomerName = $("customerNameSelect").value;
+  };
+}
+
+async function renderEmergencyPage() {
+  const names = await loadOrderNames();
+  const tables = await loadTables();
+
+  $("emergencyNameSelect").innerHTML =
+    `<option value="">名前を選択してください</option>`;
+
+  names.forEach(item => {
+    $("emergencyNameSelect").innerHTML += `
+      <option value="${esc(item.name)}">
+        ${esc(item.name)}
+      </option>
+    `;
+  });
+
+  $("emergencyTableSelect").innerHTML =
+    `<option value="">卓を選択してください</option>`;
+
+  tables.forEach(item => {
+    $("emergencyTableSelect").innerHTML += `
+      <option value="${esc(item.name)}">
+        ${esc(item.name)}
+      </option>
+    `;
+  });
+}
+
+$("sendEmergencyButton").onclick = async () => {
+  const customerName = $("emergencyNameSelect").value;
+  const tableName = $("emergencyTableSelect").value;
+
+  if (!customerName) {
+    alert("名前を選択してください");
+    return;
+  }
+
+  if (!tableName) {
+    alert("卓を選択してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("emergency_calls")
+    .insert([
+      {
+        group_id: currentGroupId,
+        customer_name: customerName,
+        table_name: tableName,
+        status: "active"
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("緊急通知の送信に失敗しました");
+    return;
+  }
+
+  alert("緊急通知を送信しました");
+};
+
 function setupOrderTabs() {
   document.querySelectorAll(".tab-button").forEach(button => {
     button.onclick = () => {
@@ -740,6 +990,7 @@ async function renderOrderPage() {
 
   const tables = await loadTables();
   await loadOptions();
+  await renderOrderNameSelect();
 
   $("orderTableSelect").innerHTML =
     `<option value="">卓を選択してください</option>`;
@@ -899,7 +1150,9 @@ window.removeCartItem = index => {
 
 $("sendOrderButton").onclick = async () => {
   const tableName = $("orderTableSelect").value;
-  const customerName = $("customerName").value.trim();
+  const customerName = $("customerNameSelect").value;
+
+  selectedCustomerName = customerName;
 
   if (!tableName) {
     alert("卓を選択してください");
@@ -907,7 +1160,7 @@ $("sendOrderButton").onclick = async () => {
   }
 
   if (!customerName) {
-    alert("名前を入力してください");
+    alert("名前を選択してください");
     return;
   }
 
@@ -939,7 +1192,6 @@ $("sendOrderButton").onclick = async () => {
   alert("注文しました");
 
   cart = [];
-  $("customerName").value = "";
   $("orderMemo").value = "";
 
   renderCart();
@@ -1097,13 +1349,6 @@ async function renderHistoryPage() {
 }
 
 $("resetHistoryButton").onclick = async () => {
-  const pass = $("historyAdminPassword").value.trim();
-
-  if (pass !== ADMIN_PASSWORD) {
-    alert("管理人パスワードが違います");
-    return;
-  }
-
   if (!confirm("このグループの注文履歴を全て削除しますか？")) {
     return;
   }
@@ -1118,8 +1363,6 @@ $("resetHistoryButton").onclick = async () => {
     alert("履歴リセット失敗");
     return;
   }
-
-  $("historyAdminPassword").value = "";
 
   alert("履歴をリセットしました");
 
