@@ -11,33 +11,42 @@ let currentGroupName = "";
 let cart = [];
 let optionGroupsCache = [];
 let optionChoicesCache = [];
+let selectedCustomerName = "";
+let ordersChannel = null;
+let emergencyChannel = null;
+let focusedMenuId = "";
 
 const $ = id => document.getElementById(id);
 
 const pages = {
   login: $("loginPage"),
   createGroup: $("createGroupPage"),
-  admin: $("adminPage"),
   home: $("homePage"),
+  setting: $("settingPage"),
+  admin: $("adminPage"),
   list: $("listPage"),
   register: $("registerPage"),
   order: $("orderPage"),
   receive: $("receivePage"),
   history: $("historyPage"),
+  emergency: $("emergencyPage"),
   option: $("optionPage"),
   table: $("tablePage"),
+  name: $("namePage"),
 };
 
 function showPage(name) {
   Object.values(pages).forEach(page => {
-    if (page) {
-      page.classList.remove("active");
-    }
+    if (page) page.classList.remove("active");
   });
 
   if (pages[name]) {
     pages[name].classList.add("active");
   }
+}
+
+function isActive(name) {
+  return pages[name]?.classList.contains("active");
 }
 
 function esc(text) {
@@ -47,6 +56,14 @@ function esc(text) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function menuLinkHtml(item) {
+  if (item.id && !String(item.id).startsWith("normal-")) {
+    return `<span class="clickable-menu" onclick="openMenuFromOrder('${item.id}')">${esc(item.name)}</span>`;
+  }
+
+  return esc(item.name);
 }
 
 async function openPage(pageName, renderFunction) {
@@ -61,6 +78,71 @@ async function openPage(pageName, renderFunction) {
     }
   }
 }
+
+function stopRealtime() {
+  if (ordersChannel) {
+    supabase.removeChannel(ordersChannel);
+    ordersChannel = null;
+  }
+
+  if (emergencyChannel) {
+    supabase.removeChannel(emergencyChannel);
+    emergencyChannel = null;
+  }
+}
+
+function startRealtime() {
+  if (!currentGroupId) return;
+
+  stopRealtime();
+
+  ordersChannel = supabase
+    .channel("orders-" + currentGroupId)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: "group_id=eq." + currentGroupId
+      },
+      async () => {
+        if (isActive("receive")) await renderReceivePage();
+        if (isActive("history")) await renderHistoryPage();
+      }
+    )
+    .subscribe();
+
+  emergencyChannel = supabase
+    .channel("emergency-" + currentGroupId)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "emergency_calls",
+        filter: "group_id=eq." + currentGroupId
+      },
+      payload => {
+        showEmergencyPopup(payload.new);
+      }
+    )
+    .subscribe();
+}
+
+function showEmergencyPopup(data) {
+  $("emergencyText").innerHTML = `
+    ${esc(data.customer_name)} さん<br>
+    ${esc(data.table_name)}<br><br>
+    至急対応してください
+  `;
+
+  $("emergencyOverlay").classList.remove("hidden");
+}
+
+$("closeEmergencyButton").onclick = () => {
+  $("emergencyOverlay").classList.add("hidden");
+};
 
 async function loadGroups() {
   const { data, error } = await supabase
@@ -79,31 +161,25 @@ async function loadGroups() {
 async function renderGroupOptions() {
   const groups = await loadGroups();
 
-  if ($("groupSelect")) {
-    $("groupSelect").innerHTML =
-      `<option value="">グループを選択してください</option>`;
+  $("groupSelect").innerHTML =
+    `<option value="">グループを選択してください</option>`;
 
-    groups.forEach(group => {
-      $("groupSelect").innerHTML += `
-        <option value="${group.id}">
-          ${esc(group.name)}
-        </option>
-      `;
-    });
-  }
+  $("adminGroupSelect").innerHTML =
+    `<option value="">グループを選択してください</option>`;
 
-  if ($("adminGroupSelect")) {
-    $("adminGroupSelect").innerHTML =
-      `<option value="">グループを選択してください</option>`;
+  groups.forEach(group => {
+    $("groupSelect").innerHTML += `
+      <option value="${group.id}">
+        ${esc(group.name)}
+      </option>
+    `;
 
-    groups.forEach(group => {
-      $("adminGroupSelect").innerHTML += `
-        <option value="${group.id}">
-          ${esc(group.name)}
-        </option>
-      `;
-    });
-  }
+    $("adminGroupSelect").innerHTML += `
+      <option value="${group.id}">
+        ${esc(group.name)}
+      </option>
+    `;
+  });
 }
 
 $("goCreateGroupButton").onclick = () => {
@@ -114,12 +190,107 @@ $("backToLoginButton").onclick = () => {
   showPage("login");
 };
 
-$("goAdminButton").onclick = async () => {
+$("homeOrderButton").onclick = async () => {
+  await openPage("order", renderOrderPage);
+};
+
+$("homeReceiveButton").onclick = async () => {
+  await openPage("receive", renderReceivePage);
+};
+
+$("homeHistoryButton").onclick = async () => {
+  await openPage("history", renderHistoryPage);
+};
+
+$("homeListButton").onclick = async () => {
+  focusedMenuId = "";
+  $("search").value = "";
+  await openPage("list", renderMenus);
+};
+
+$("homeSettingButton").onclick = () => {
+  showPage("setting");
+};
+
+$("settingRegisterButton").onclick = () => {
+  resetRegisterForm();
+  showPage("register");
+};
+
+$("settingOptionButton").onclick = async () => {
+  await openPage("option", renderOptionManagePage);
+};
+
+$("settingTableButton").onclick = async () => {
+  await openPage("table", renderTableManagePage);
+};
+
+$("settingNameButton").onclick = async () => {
+  await openPage("name", renderOrderNameManagePage);
+};
+
+$("settingAdminButton").onclick = async () => {
   await renderGroupOptions();
   showPage("admin");
 };
 
-$("backToLoginFromAdminButton").onclick = () => {
+document.querySelectorAll(".backHome").forEach(btn => {
+  btn.onclick = () => {
+    showPage("home");
+  };
+});
+
+document.querySelectorAll(".backSetting").forEach(btn => {
+  btn.onclick = () => {
+    showPage("setting");
+  };
+});
+
+document.querySelectorAll(".backOrder").forEach(btn => {
+  btn.onclick = async () => {
+    await openPage("order", renderOrderPage);
+  };
+});
+
+document.querySelectorAll(".navOrder").forEach(btn => {
+  btn.onclick = async () => {
+    await openPage("order", renderOrderPage);
+  };
+});
+
+document.querySelectorAll(".navReceive").forEach(btn => {
+  btn.onclick = async () => {
+    await openPage("receive", renderReceivePage);
+  };
+});
+
+document.querySelectorAll(".navHistory").forEach(btn => {
+  btn.onclick = async () => {
+    await openPage("history", renderHistoryPage);
+  };
+});
+
+document.querySelectorAll(".navList").forEach(btn => {
+  btn.onclick = async () => {
+    focusedMenuId = "";
+    $("search").value = "";
+    await openPage("list", renderMenus);
+  };
+});
+
+$("orderEmergencyButton").onclick = async () => {
+  await openPage("emergency", renderEmergencyPage);
+};
+
+$("logoutButton").onclick = () => {
+  stopRealtime();
+
+  currentGroupId = "";
+  currentGroupName = "";
+  cart = [];
+  selectedCustomerName = "";
+  focusedMenuId = "";
+
   showPage("login");
 };
 
@@ -195,12 +366,15 @@ $("loginButton").onclick = async () => {
 
   currentGroupId = String(data.id);
   currentGroupName = data.name;
+  selectedCustomerName = "";
+  focusedMenuId = "";
 
   $("currentGroupText").textContent =
     "現在のグループ：" + currentGroupName;
 
   $("groupPassword").value = "";
 
+  startRealtime();
   showPage("home");
 };
 
@@ -214,7 +388,7 @@ $("changeGroupPasswordButton").onclick = async () => {
   const newPass = $("newPasswordForGroup").value.trim();
 
   if (!groupId || !newPass) {
-    alert("グループと新パスワードを入力してください");
+    alert("入力してください");
     return;
   }
 
@@ -255,6 +429,8 @@ $("deleteGroupButton").onclick = async () => {
   await supabase.from("option_choices").delete().eq("group_id", groupId);
   await supabase.from("option_groups").delete().eq("group_id", groupId);
   await supabase.from("tables").delete().eq("group_id", groupId);
+  await supabase.from("order_names").delete().eq("group_id", groupId);
+  await supabase.from("emergency_calls").delete().eq("group_id", groupId);
 
   const { error } = await supabase
     .from("groups")
@@ -271,48 +447,6 @@ $("deleteGroupButton").onclick = async () => {
 
   alert("削除しました");
   showPage("login");
-};
-
-document.querySelectorAll(".backHome").forEach(btn => {
-  btn.onclick = () => {
-    showPage("home");
-  };
-});
-
-$("logoutButton").onclick = () => {
-  currentGroupId = "";
-  currentGroupName = "";
-  cart = [];
-  showPage("login");
-};
-
-$("goListButton").onclick = async () => {
-  await openPage("list", renderMenus);
-};
-
-$("goRegisterButton").onclick = () => {
-  resetRegisterForm();
-  showPage("register");
-};
-
-$("goOrderButton").onclick = async () => {
-  await openPage("order", renderOrderPage);
-};
-
-$("goReceiveButton").onclick = async () => {
-  await openPage("receive", renderReceivePage);
-};
-
-$("goHistoryButton").onclick = async () => {
-  await openPage("history", renderHistoryPage);
-};
-
-$("goOptionButton").onclick = async () => {
-  await openPage("option", renderOptionManagePage);
-};
-
-$("goTableButton").onclick = async () => {
-  await openPage("table", renderTableManagePage);
 };
 
 function resetRegisterForm() {
@@ -337,19 +471,28 @@ async function loadMenus() {
 
 async function renderMenus() {
   const menus = await loadMenus();
-  const keyword = $("search").value.toLowerCase();
 
-  const filtered = menus.filter(menu => {
-    return `
-      ${menu.name || ""}
-      ${menu.item_type || ""}
-      ${menu.category || ""}
-      ${menu.taste || ""}
-      ${menu.description || ""}
-    `
-      .toLowerCase()
-      .includes(keyword);
-  });
+  let filtered = menus;
+
+  if (focusedMenuId) {
+    filtered = menus.filter(menu =>
+      String(menu.id) === String(focusedMenuId)
+    );
+  } else {
+    const keyword = $("search").value.toLowerCase();
+
+    filtered = menus.filter(menu => {
+      return `
+        ${menu.name || ""}
+        ${menu.item_type || ""}
+        ${menu.category || ""}
+        ${menu.taste || ""}
+        ${menu.description || ""}
+      `
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }
 
   if (filtered.length === 0) {
     $("menuList").innerHTML =
@@ -371,26 +514,31 @@ async function renderMenus() {
 
       <p>${esc(menu.description)}</p>
 
-      <details>
+      <details ${focusedMenuId ? "open" : ""}>
         <summary>詳細を見る</summary>
         <p><b>内容：</b><br>${esc(menu.bottles)}</p>
         <p><b>作り方：</b><br>${esc(menu.recipe)}</p>
       </details>
 
       <div class="actions">
-        <button class="edit" onclick="editMenu('${menu.id}')">
-          編集
-        </button>
-
-        <button class="delete" onclick="deleteMenu('${menu.id}')">
-          削除
-        </button>
+        <button class="edit" onclick="editMenu('${menu.id}')">編集</button>
+        <button class="delete" onclick="deleteMenu('${menu.id}')">削除</button>
       </div>
     </div>
   `).join("");
 }
 
-$("search").addEventListener("input", renderMenus);
+window.openMenuFromOrder = async id => {
+  focusedMenuId = String(id);
+  $("search").value = "";
+  showPage("list");
+  await renderMenus();
+};
+
+$("search").addEventListener("input", () => {
+  focusedMenuId = "";
+  renderMenus();
+});
 
 $("cocktailForm").onsubmit = async event => {
   event.preventDefault();
@@ -425,6 +573,7 @@ $("cocktailForm").onsubmit = async event => {
   }
 
   resetRegisterForm();
+  focusedMenuId = "";
   await renderMenus();
   showPage("list");
 };
@@ -457,9 +606,7 @@ window.editMenu = async id => {
 };
 
 window.deleteMenu = async id => {
-  if (!confirm("削除しますか？")) {
-    return;
-  }
+  if (!confirm("削除しますか？")) return;
 
   const { error } = await supabase
     .from("cocktails")
@@ -472,6 +619,7 @@ window.deleteMenu = async id => {
     return;
   }
 
+  focusedMenuId = "";
   await renderMenus();
 };
 
@@ -523,9 +671,7 @@ async function renderTableManagePage() {
   $("tableManageList").innerHTML = tables.map(table => `
     <div class="manage-item">
       ${esc(table.name)}
-      <button class="delete mini" onclick="deleteTable('${table.id}')">
-        削除
-      </button>
+      <button class="delete mini" onclick="deleteTable('${table.id}')">削除</button>
     </div>
   `).join("");
 }
@@ -544,6 +690,95 @@ window.deleteTable = async id => {
 
   await renderTableManagePage();
 };
+
+async function loadOrderNames() {
+  const { data, error } = await supabase
+    .from("order_names")
+    .select("*")
+    .eq("group_id", currentGroupId);
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  return data || [];
+}
+
+$("addOrderNameButton").onclick = async () => {
+  const name = $("orderNameInput").value.trim();
+
+  if (!name) {
+    alert("注文者名を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("order_names")
+    .insert([{ group_id: currentGroupId, name }]);
+
+  if (error) {
+    console.error(error);
+    alert("追加失敗");
+    return;
+  }
+
+  $("orderNameInput").value = "";
+  await renderOrderNameManagePage();
+};
+
+async function renderOrderNameManagePage() {
+  const names = await loadOrderNames();
+
+  if (names.length === 0) {
+    $("orderNameManageList").innerHTML =
+      `<div class="manage-item">まだ注文者名がありません。</div>`;
+    return;
+  }
+
+  $("orderNameManageList").innerHTML = names.map(item => `
+    <div class="manage-item">
+      ${esc(item.name)}
+      <button class="delete mini" onclick="deleteOrderName('${item.id}')">削除</button>
+    </div>
+  `).join("");
+}
+
+window.deleteOrderName = async id => {
+  const { error } = await supabase
+    .from("order_names")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
+  await renderOrderNameManagePage();
+};
+
+async function renderOrderNameSelect() {
+  const names = await loadOrderNames();
+
+  $("customerNameSelect").innerHTML =
+    `<option value="">名前を選択してください</option>`;
+
+  names.forEach(item => {
+    $("customerNameSelect").innerHTML += `
+      <option value="${esc(item.name)}">${esc(item.name)}</option>
+    `;
+  });
+
+  if (selectedCustomerName) {
+    $("customerNameSelect").value = selectedCustomerName;
+  }
+
+  $("customerNameSelect").onchange = () => {
+    selectedCustomerName = $("customerNameSelect").value;
+  };
+}
 
 async function loadOptions() {
   const { data: groups, error: groupError } = await supabase
@@ -628,9 +863,7 @@ async function renderOptionManagePage() {
 
   optionGroupsCache.forEach(group => {
     $("optionGroupSelect").innerHTML += `
-      <option value="${group.id}">
-        ${esc(group.name)}
-      </option>
+      <option value="${group.id}">${esc(group.name)}</option>
     `;
   });
 
@@ -656,17 +889,12 @@ async function renderOptionManagePage() {
                 <p>
                   ${esc(choice.name)}
                   ${choice.sub_name ? " / " + esc(choice.sub_name) : ""}
-
-                  <button class="delete mini" onclick="deleteOptionChoice('${choice.id}')">
-                    削除
-                  </button>
+                  <button class="delete mini" onclick="deleteOptionChoice('${choice.id}')">削除</button>
                 </p>
               `).join("")
         }
 
-        <button class="delete mini" onclick="deleteOptionGroup('${group.id}')">
-          項目ごと削除
-        </button>
+        <button class="delete mini" onclick="deleteOptionGroup('${group.id}')">項目ごと削除</button>
       </div>
     `;
   }).join("");
@@ -688,9 +916,7 @@ window.deleteOptionChoice = async id => {
 };
 
 window.deleteOptionGroup = async id => {
-  if (!confirm("項目ごと削除しますか？")) {
-    return;
-  }
+  if (!confirm("項目ごと削除しますか？")) return;
 
   await supabase
     .from("option_choices")
@@ -711,6 +937,58 @@ window.deleteOptionGroup = async id => {
   await renderOptionManagePage();
 };
 
+async function renderEmergencyPage() {
+  const names = await loadOrderNames();
+  const tables = await loadTables();
+
+  $("emergencyNameSelect").innerHTML =
+    `<option value="">名前を選択してください</option>`;
+
+  names.forEach(item => {
+    $("emergencyNameSelect").innerHTML += `
+      <option value="${esc(item.name)}">${esc(item.name)}</option>
+    `;
+  });
+
+  $("emergencyTableSelect").innerHTML =
+    `<option value="">卓を選択してください</option>`;
+
+  tables.forEach(item => {
+    $("emergencyTableSelect").innerHTML += `
+      <option value="${esc(item.name)}">${esc(item.name)}</option>
+    `;
+  });
+}
+
+$("sendEmergencyButton").onclick = async () => {
+  const customerName = $("emergencyNameSelect").value;
+  const tableName = $("emergencyTableSelect").value;
+
+  if (!customerName || !tableName) {
+    alert("名前と卓を選択してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("emergency_calls")
+    .insert([
+      {
+        group_id: currentGroupId,
+        customer_name: customerName,
+        table_name: tableName,
+        status: "active"
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("緊急通知の送信に失敗しました");
+    return;
+  }
+
+  alert("緊急通知を送信しました");
+};
+
 function setupOrderTabs() {
   document.querySelectorAll(".tab-button").forEach(button => {
     button.onclick = () => {
@@ -726,17 +1004,9 @@ function setupOrderTabs() {
 
       const tabName = button.dataset.tab;
 
-      if (tabName === "normal") {
-        $("normalOrderPanel").classList.add("active");
-      }
-
-      if (tabName === "food") {
-        $("foodOrderPanel").classList.add("active");
-      }
-
-      if (tabName === "original") {
-        $("originalOrderPanel").classList.add("active");
-      }
+      if (tabName === "normal") $("normalOrderPanel").classList.add("active");
+      if (tabName === "food") $("foodOrderPanel").classList.add("active");
+      if (tabName === "original") $("originalOrderPanel").classList.add("active");
     };
   });
 }
@@ -751,6 +1021,7 @@ async function renderOrderPage() {
 
   const tables = await loadTables();
   await loadOptions();
+  await renderOrderNameSelect();
 
   $("orderTableSelect").innerHTML =
     `<option value="">卓を選択してください</option>`;
@@ -817,15 +1088,11 @@ async function renderOrderItemList(type, elementId) {
       </div>
 
       <h3>${esc(item.name)}</h3>
-
       <span class="tag">${esc(item.item_type || "")}</span>
       <span class="tag">${esc(item.category || "")}</span>
-
       <p>${esc(item.description)}</p>
 
-      <button class="primary" onclick="addMenuToCart('${item.id}')">
-        カートに追加
-      </button>
+      <button class="primary" onclick="addMenuToCart('${item.id}')">カートに追加</button>
     </div>
   `).join("");
 }
@@ -861,9 +1128,7 @@ window.addMenuToCart = async id => {
   const menus = await loadMenus();
   const item = menus.find(menu => String(menu.id) === String(id));
 
-  if (!item) {
-    return;
-  }
+  if (!item) return;
 
   cart.push({
     id: item.id,
@@ -888,17 +1153,11 @@ function renderCart() {
 
       ${
         item.options && item.options.length > 0
-          ? `<ul>
-              ${item.options.map(opt => `
-                <li>${esc(opt.name)}：${esc(opt.value)}</li>
-              `).join("")}
-            </ul>`
+          ? `<ul>${item.options.map(opt => `<li>${esc(opt.name)}：${esc(opt.value)}</li>`).join("")}</ul>`
           : ""
       }
 
-      <button class="delete mini" onclick="removeCartItem(${index})">
-        削除
-      </button>
+      <button class="delete mini" onclick="removeCartItem(${index})">削除</button>
     </div>
   `).join("");
 }
@@ -910,7 +1169,9 @@ window.removeCartItem = index => {
 
 $("sendOrderButton").onclick = async () => {
   const tableName = $("orderTableSelect").value;
-  const customerName = $("customerName").value.trim();
+  const customerName = $("customerNameSelect").value;
+
+  selectedCustomerName = customerName;
 
   if (!tableName) {
     alert("卓を選択してください");
@@ -918,7 +1179,7 @@ $("sendOrderButton").onclick = async () => {
   }
 
   if (!customerName) {
-    alert("名前を入力してください");
+    alert("名前を選択してください");
     return;
   }
 
@@ -950,7 +1211,6 @@ $("sendOrderButton").onclick = async () => {
   alert("注文しました");
 
   cart = [];
-  $("customerName").value = "";
   $("orderMemo").value = "";
 
   renderCart();
@@ -986,39 +1246,24 @@ async function renderReceivePage() {
   }
 
   $("orderReceiveList").innerHTML = orders.map(order => {
-    const statusText =
-      order.status === "making" ? "対応中" : "未対応";
-
-    const nextText =
-      order.status === "making"
-        ? "お届け済みにする"
-        : "対応中にする";
-
-    const statusClass =
-      order.status === "making" ? "making" : "pending";
-
-    const buttonClass =
-      order.status === "making" ? "status-making" : "status-pending";
+    const statusText = order.status === "making" ? "対応中" : "未対応";
+    const nextText = order.status === "making" ? "お届け済みにする" : "対応中にする";
+    const statusClass = order.status === "making" ? "making" : "pending";
+    const buttonClass = order.status === "making" ? "status-making" : "status-pending";
 
     return `
       <div class="order-card ${statusClass}">
         <h3>卓：${esc(order.table_name)}</h3>
-
         <p><b>名前：</b>${esc(order.customer_name)}</p>
-
         <p><b>商品：</b></p>
+
         <ul>
           ${(order.items || []).map(item => `
             <li>
-              ${esc(item.name)} / ${esc(item.item_type)}
-
+              ${menuLinkHtml(item)} / ${esc(item.item_type)}
               ${
                 item.options && item.options.length > 0
-                  ? `<ul>
-                      ${item.options.map(opt => `
-                        <li>${esc(opt.name)}：${esc(opt.value)}</li>
-                      `).join("")}
-                    </ul>`
+                  ? `<ul>${item.options.map(opt => `<li>${esc(opt.name)}：${esc(opt.value)}</li>`).join("")}</ul>`
                   : ""
               }
             </li>
@@ -1028,10 +1273,7 @@ async function renderReceivePage() {
         <p><b>メモ：</b>${esc(order.memo)}</p>
         <p><b>状態：</b>${statusText}</p>
 
-        <button
-          class="status-button ${buttonClass}"
-          onclick="advanceOrderStatus('${order.id}', '${order.status}')"
-        >
+        <button class="status-button ${buttonClass}" onclick="advanceOrderStatus('${order.id}', '${order.status}')">
           ${nextText}
         </button>
       </div>
@@ -1040,8 +1282,7 @@ async function renderReceivePage() {
 }
 
 window.advanceOrderStatus = async (id, status) => {
-  const nextStatus =
-    status === "pending" ? "making" : "done";
+  const nextStatus = status === "pending" ? "making" : "done";
 
   const { error } = await supabase
     .from("orders")
@@ -1068,14 +1309,8 @@ async function renderHistoryPage() {
 
   $("orderHistoryList").innerHTML = orders.map(order => {
     let statusText = "未対応";
-
-    if (order.status === "making") {
-      statusText = "対応中";
-    }
-
-    if (order.status === "done") {
-      statusText = "お届け済み";
-    }
+    if (order.status === "making") statusText = "対応中";
+    if (order.status === "done") statusText = "お届け済み";
 
     return `
       <div class="order-card ${esc(order.status)}">
@@ -1086,15 +1321,10 @@ async function renderHistoryPage() {
         <ul>
           ${(order.items || []).map(item => `
             <li>
-              ${esc(item.name)} / ${esc(item.item_type)}
-
+              ${menuLinkHtml(item)} / ${esc(item.item_type)}
               ${
                 item.options && item.options.length > 0
-                  ? `<ul>
-                      ${item.options.map(opt => `
-                        <li>${esc(opt.name)}：${esc(opt.value)}</li>
-                      `).join("")}
-                    </ul>`
+                  ? `<ul>${item.options.map(opt => `<li>${esc(opt.name)}：${esc(opt.value)}</li>`).join("")}</ul>`
                   : ""
               }
             </li>
@@ -1108,16 +1338,7 @@ async function renderHistoryPage() {
 }
 
 $("resetHistoryButton").onclick = async () => {
-  const pass = $("historyAdminPassword").value.trim();
-
-  if (pass !== ADMIN_PASSWORD) {
-    alert("管理人パスワードが違います");
-    return;
-  }
-
-  if (!confirm("このグループの注文履歴を全て削除しますか？")) {
-    return;
-  }
+  if (!confirm("このグループの注文履歴を全て削除しますか？")) return;
 
   const { error } = await supabase
     .from("orders")
@@ -1130,10 +1351,7 @@ $("resetHistoryButton").onclick = async () => {
     return;
   }
 
-  $("historyAdminPassword").value = "";
-
   alert("履歴をリセットしました");
-
   await renderHistoryPage();
 };
 
