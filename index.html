@@ -70,10 +70,11 @@
   </div>
 
   <div class="menu-buttons">
-    <button id="goListButton" class="primary">メニュー一覧</button>
-    <button id="goRegisterButton" class="primary">メニュー登録</button>
     <button id="goOrderButton" class="primary">注文画面</button>
     <button id="goReceiveButton" class="primary">受け取り画面</button>
+    <button id="goHistoryButton" class="primary">注文履歴</button>
+    <button id="goListButton" class="primary">メニュー一覧</button>
+    <button id="goRegisterButton" class="primary">メニュー登録</button>
     <button id="goOptionButton" class="primary">選択項目管理</button>
     <button id="goTableButton" class="primary">卓管理</button>
   </div>
@@ -102,8 +103,9 @@
       <label>商品タイプ</label>
       <select id="itemType" required>
         <option value="" selected disabled>選択してください</option>
-        <option>カクテル</option>
+        <option>通常</option>
         <option>フード</option>
+        <option>オリジナル</option>
       </select>
 
       <label>カテゴリー</label>
@@ -170,13 +172,29 @@
       <label>メモ</label>
       <textarea id="orderMemo" placeholder="例：氷少なめ"></textarea>
 
-      <h3>選択項目</h3>
-      <div id="orderOptions"></div>
+      <div class="tab-buttons">
+        <button class="tab-button active" data-tab="normal">通常</button>
+        <button class="tab-button" data-tab="food">フード</button>
+        <button class="tab-button" data-tab="original">オリジナル</button>
+      </div>
     </div>
 
     <div>
-      <h3>商品を選ぶ</h3>
-      <div id="orderItemList" class="menu-grid"></div>
+      <div id="normalOrderPanel" class="order-tab active">
+        <h3>通常注文</h3>
+        <div id="normalOptions"></div>
+        <button id="addNormalToCartButton" class="primary">通常カクテルをカートに追加</button>
+      </div>
+
+      <div id="foodOrderPanel" class="order-tab">
+        <h3>フード</h3>
+        <div id="foodItemList" class="menu-grid"></div>
+      </div>
+
+      <div id="originalOrderPanel" class="order-tab">
+        <h3>オリジナル</h3>
+        <div id="originalItemList" class="menu-grid"></div>
+      </div>
     </div>
 
     <div class="panel cart-panel">
@@ -194,6 +212,21 @@
   </div>
 
   <div id="orderReceiveList" class="order-list"></div>
+</section>
+
+<section id="historyPage" class="page">
+  <div class="top-menu">
+    <h2>注文履歴</h2>
+    <button class="secondary mini backHome">ホーム</button>
+  </div>
+
+  <div class="panel center-panel">
+    <label>管理人パスワード</label>
+    <input id="historyAdminPassword" type="password" placeholder="履歴リセット時のみ入力" />
+    <button id="resetHistoryButton" class="danger-button">注文履歴をリセット</button>
+  </div>
+
+  <div id="orderHistoryList" class="order-list"></div>
 </section>
 
 <section id="optionPage" class="page">
