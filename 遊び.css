@@ -17,21 +17,10 @@ body {
   font-family: "Yu Gothic", sans-serif;
   color: var(--text);
   min-height: 100vh;
-
   background:
-    radial-gradient(circle at top left,
-      rgba(255,140,198,0.18),
-      transparent 35%
-    ),
-    radial-gradient(circle at bottom right,
-      rgba(116,215,255,0.13),
-      transparent 35%
-    ),
-    linear-gradient(
-      180deg,
-      var(--bg2),
-      var(--bg1)
-    );
+    radial-gradient(circle at top left, rgba(255,140,198,0.18), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(116,215,255,0.13), transparent 35%),
+    linear-gradient(180deg, var(--bg2), var(--bg1));
 }
 
 header {
@@ -113,13 +102,7 @@ button:hover {
   border-radius: 999px;
   font-weight: bold;
   color: #24112e;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--gold),
-      var(--pink)
-    );
+  background: linear-gradient(135deg, var(--gold), var(--pink));
 }
 
 .secondary {
@@ -129,7 +112,6 @@ button:hover {
   border-radius: 999px;
   font-weight: bold;
   color: white;
-
   background: rgba(255,255,255,0.14);
 }
 
@@ -148,13 +130,7 @@ button:hover {
   border-radius: 999px;
   font-weight: bold;
   color: white;
-
-  background:
-    linear-gradient(
-      135deg,
-      #ff4d6d,
-      #b51535
-    );
+  background: linear-gradient(135deg, #ff4d6d, #b51535);
 }
 
 .top-menu {
@@ -170,18 +146,18 @@ button:hover {
   padding: 10px 18px;
 }
 
-.menu-buttons {
+.menu-buttons,
+.page-nav {
   display: grid;
-  grid-template-columns:
-    repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  gap: 14px;
+}
+
+.menu-buttons {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .page-nav {
-  display: grid;
-  grid-template-columns:
-    repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   margin-bottom: 20px;
 }
 
@@ -190,19 +166,12 @@ button:hover {
   border-radius: 999px;
   font-weight: bold;
   color: white;
-
   background: rgba(255,255,255,0.14);
 }
 
 .active-nav {
   color: #1d1027 !important;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--gold),
-      var(--pink)
-    ) !important;
+  background: linear-gradient(135deg, var(--gold), var(--pink)) !important;
 }
 
 .danger-mini {
@@ -210,24 +179,13 @@ button:hover {
   border-radius: 999px;
   font-weight: bold;
   color: white;
-
-  background:
-    linear-gradient(
-      135deg,
-      #ff4d6d,
-      #b51535
-    ) !important;
+  background: linear-gradient(135deg, #ff4d6d, #b51535) !important;
 }
 
 .menu-grid {
   display: grid;
-  grid-template-columns:
-    repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 18px;
-}
-
-.card {
-  overflow: hidden;
 }
 
 .card-image {
@@ -235,11 +193,9 @@ button:hover {
   border-radius: 18px;
   overflow: hidden;
   background: rgba(255,255,255,0.08);
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   font-size: 42px;
 }
 
@@ -255,7 +211,6 @@ button:hover {
   border-radius: 999px;
   margin-right: 6px;
   margin-bottom: 6px;
-
   background: rgba(255,216,107,0.18);
   color: #ffe7a5;
 }
@@ -274,22 +229,11 @@ button:hover {
 }
 
 .edit {
-  background:
-    linear-gradient(
-      135deg,
-      #74d7ff,
-      #8df2dd
-    );
+  background: linear-gradient(135deg, #74d7ff, #8df2dd);
 }
 
 .delete {
-  background:
-    linear-gradient(
-      135deg,
-      #ff4d6d,
-      #b51535
-    );
-
+  background: linear-gradient(135deg, #ff4d6d, #b51535);
   color: white;
 }
 
@@ -318,7 +262,6 @@ button:hover {
   margin-bottom: 14px;
   padding: 14px;
   border-radius: 18px;
-
   background: rgba(255,255,255,0.08);
 }
 
@@ -333,19 +276,12 @@ button:hover {
   border-radius: 999px;
   font-weight: bold;
   color: white;
-
   background: rgba(255,255,255,0.14);
 }
 
 .tab-button.active {
   color: #1d1027;
-
-  background:
-    linear-gradient(
-      135deg,
-      var(--gold),
-      var(--pink)
-    );
+  background: linear-gradient(135deg, var(--gold), var(--pink));
 }
 
 .order-tab {
@@ -400,21 +336,12 @@ button:hover {
 }
 
 .emergency-popup {
-  background:
-    linear-gradient(
-      160deg,
-      rgba(80,8,20,0.96),
-      rgba(35,12,48,0.96)
-    );
-
+  background: linear-gradient(160deg, rgba(80,8,20,0.96), rgba(35,12,48,0.96));
   border: 2px solid var(--gold);
   border-radius: 22px;
   padding: 20px;
   text-align: center;
-
-  box-shadow:
-    0 0 24px rgba(255,77,109,0.48),
-    0 14px 30px rgba(0,0,0,0.45);
+  box-shadow: 0 0 24px rgba(255,77,109,0.48), 0 14px 30px rgba(0,0,0,0.45);
 }
 
 .emergency-popup h1 {
@@ -433,8 +360,8 @@ button:hover {
 }
 
 @media (max-width: 900px) {
-
-  .order-layout {
+  .order-layout,
+  .top-menu {
     display: block;
   }
 
@@ -443,13 +370,8 @@ button:hover {
     margin-top: 20px;
   }
 
-  .top-menu {
-    display: block;
-  }
-
   .mini {
     width: 100%;
     margin-top: 10px;
   }
-
 }
