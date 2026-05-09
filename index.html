@@ -13,13 +13,10 @@
 <div id="emergencyFormOverlay" class="modal-overlay hidden">
   <div class="modal-box danger-modal">
     <h2>🚨 緊急通知を送信</h2>
-
     <label>名前</label>
     <select id="emergencyNameSelect"></select>
-
     <label>卓</label>
     <select id="emergencyTableSelect"></select>
-
     <button id="sendEmergencyButton" class="danger-button">全員に緊急通知を送信</button>
     <button id="closeEmergencyFormButton" class="secondary">閉じる</button>
   </div>
@@ -48,15 +45,14 @@
 </div>
 
 <header>
-  <div class="clock-box">
-    <span id="clockText">--:--:--</span>
-  </div>
-
   <div class="user-mini-box hidden" id="globalUserBox">
-    <label>使用ユーザー</label>
-    <select id="globalUserSelect"></select>
+    <div class="user-icon-preview"><img id="globalUserIcon" src="" alt=""></div>
+    <div class="user-select-area">
+      <label>使用ユーザー</label>
+      <select id="globalUserSelect"></select>
+    </div>
   </div>
-
+  <div class="clock-box"><span id="clockText">--:--:--</span></div>
   <h1>🍸 VRC Bar System</h1>
   <p>注文・受け取り・メニュー管理</p>
 </header>
@@ -64,13 +60,10 @@
 <section id="loginPage" class="page active">
   <div class="panel center-panel">
     <h2>グループを開く</h2>
-
     <label>グループ選択</label>
     <select id="groupSelect"></select>
-
     <label>グループパスワード</label>
     <input id="groupPassword" type="password" placeholder="パスワードを入力" />
-
     <button id="loginButton" class="primary">ログイン</button>
     <button id="goCreateGroupButton" class="small-link-button">＋ グループを作成する</button>
   </div>
@@ -79,13 +72,10 @@
 <section id="createGroupPage" class="page">
   <div class="panel center-panel">
     <h2>グループ作成</h2>
-
     <label>グループ名</label>
     <input id="newGroupName" placeholder="例：Nakiya Bar" />
-
     <label>グループパスワード</label>
     <input id="newGroupPassword" type="password" />
-
     <button id="createGroupButton" class="primary">グループを作成</button>
     <button id="backToLoginButton" class="secondary">戻る</button>
   </div>
@@ -96,7 +86,6 @@
     <p id="currentGroupText">現在のグループ：</p>
     <button id="logoutButton" class="secondary mini">ログアウト</button>
   </div>
-
   <div class="menu-buttons">
     <button id="homeOrderButton" class="primary">注文画面</button>
     <button id="homeReceiveButton" class="primary">受け取り画面</button>
@@ -107,11 +96,7 @@
 </section>
 
 <section id="settingPage" class="page">
-  <div class="top-menu">
-    <h2>設定</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
+  <div class="top-menu"><h2>設定</h2><button class="secondary mini backHome">ホーム</button></div>
   <div class="menu-buttons">
     <button id="settingRegisterButton" class="primary">メニュー登録</button>
     <button id="settingOptionButton" class="primary">選択項目管理</button>
@@ -126,16 +111,9 @@
 <section id="adminPage" class="page">
   <div class="panel center-panel">
     <h2>管理人メニュー</h2>
-
-    <label>管理人パスワード</label>
-    <input id="adminPassword" type="password" />
-
-    <label>グループ選択</label>
-    <select id="adminGroupSelect"></select>
-
-    <label>新しいグループパスワード</label>
-    <input id="newPasswordForGroup" type="password" />
-
+    <label>管理人パスワード</label><input id="adminPassword" type="password" />
+    <label>グループ選択</label><select id="adminGroupSelect"></select>
+    <label>新しいグループパスワード</label><input id="newPasswordForGroup" type="password" />
     <button id="changeGroupPasswordButton" class="primary">パスワード変更</button>
     <button id="deleteGroupButton" class="danger-button">グループ削除</button>
     <button class="secondary backSetting">設定へ戻る</button>
@@ -143,274 +121,94 @@
 </section>
 
 <section id="listPage" class="page">
-  <div class="top-menu">
-    <h2>メニュー一覧</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
+  <div class="top-menu"><h2>メニュー一覧</h2><button class="secondary mini backHome">ホーム</button></div>
   <div class="page-nav">
-    <button class="navOrder">注文</button>
-    <button class="navReceive">受け取り</button>
-    <button class="navHistory">履歴</button>
-    <button class="navList active-nav">メニュー一覧</button>
+    <button class="navOrder">注文</button><button class="navReceive">受け取り</button><button class="navHistory">履歴</button><button class="navList active-nav">メニュー一覧</button>
   </div>
-
-  <div class="tools">
-    <input id="search" placeholder="検索..." />
-  </div>
-
+  <div class="tools"><input id="search" placeholder="検索..." /></div>
   <div id="menuList" class="menu-grid"></div>
 </section>
 
 <section id="registerPage" class="page">
   <div class="panel center-panel">
     <h2>メニュー登録</h2>
-
     <form id="cocktailForm">
       <input type="hidden" id="editCocktailId" />
-
-      <label>商品タイプ</label>
-      <select id="itemType" required>
-        <option value="" selected disabled>選択してください</option>
-        <option>通常</option>
-        <option>フード</option>
-        <option>オリジナル</option>
-      </select>
-
-      <label>カテゴリー</label>
-      <select id="category" required>
-        <option value="" selected disabled>選択してください</option>
-        <option>ノーマル</option>
-        <option>キャストオリカク</option>
-        <option>スタッフオリカク</option>
-        <option>フード</option>
-      </select>
-
-      <label>商品名</label>
-      <input id="name" required />
-
-      <label>味イメージ</label>
-      <select id="taste" required>
-        <option value="" selected disabled>選択してください</option>
-        <option>甘い</option>
-        <option>超甘い</option>
-        <option>さっぱり</option>
-        <option>フルーティー</option>
-        <option>ミルク系</option>
-        <option>炭酸系</option>
-        <option>苦め</option>
-        <option>大人っぽい</option>
-        <option>デザート系</option>
-        <option>フード系</option>
-        <option>ネタ系</option>
-      </select>
-
-      <label>材料・内容</label>
-      <textarea id="bottles"></textarea>
-
-      <label>作り方・提供方法</label>
-      <textarea id="recipe"></textarea>
-
-      <label>説明</label>
-      <textarea id="description"></textarea>
-
-      <label>画像URL</label>
-      <input id="image" />
-
+      <label>商品タイプ</label><select id="itemType" required><option value="" selected disabled>選択してください</option><option>通常</option><option>フード</option><option>オリジナル</option></select>
+      <label>カテゴリー</label><select id="category" required><option value="" selected disabled>選択してください</option><option>ノーマル</option><option>キャストオリカク</option><option>スタッフオリカク</option><option>フード</option></select>
+      <label>商品名</label><input id="name" required />
+      <label>味イメージ</label><select id="taste" required><option value="" selected disabled>選択してください</option><option>甘い</option><option>超甘い</option><option>さっぱり</option><option>フルーティー</option><option>ミルク系</option><option>炭酸系</option><option>苦め</option><option>大人っぽい</option><option>デザート系</option><option>フード系</option><option>ネタ系</option></select>
+      <label>材料・内容</label><textarea id="bottles"></textarea>
+      <label>作り方・提供方法</label><textarea id="recipe"></textarea>
+      <label>説明</label><textarea id="description"></textarea>
+      <label>画像URL</label><input id="image" />
       <button type="submit" class="primary" id="submitButton">登録する</button>
     </form>
-
     <button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
 <section id="orderPage" class="page">
-  <div class="top-menu">
-    <h2>注文画面</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder active-nav">注文</button>
-    <button class="navReceive">受け取り</button>
-    <button class="navHistory">履歴</button>
-    <button class="navList">メニュー一覧</button>
-  </div>
-
+  <div class="top-menu"><h2>注文画面</h2><button class="secondary mini backHome">ホーム</button></div>
+  <div class="page-nav"><button class="navOrder active-nav">注文</button><button class="navReceive">受け取り</button><button class="navHistory">履歴</button><button class="navList">メニュー一覧</button></div>
   <div class="order-layout">
     <div class="panel">
-      <label>卓</label>
-      <select id="orderTableSelect"></select>
-
+      <label>卓</label><select id="orderTableSelect"></select>
       <p class="auto-user-note">注文者：<b id="orderUserText">未選択</b></p>
-
-      <label>メモ</label>
-      <textarea id="orderMemo" placeholder="例：氷少なめ"></textarea>
-
-      <div class="tab-buttons">
-        <button type="button" class="tab-button active" data-tab="normal">通常</button>
-        <button type="button" class="tab-button" data-tab="food">フード</button>
-        <button type="button" class="tab-button" data-tab="original">オリジナル</button>
-      </div>
+      <label>メモ</label><textarea id="orderMemo" placeholder="例：氷少なめ"></textarea>
+      <div class="tab-buttons"><button type="button" class="tab-button active" data-tab="normal">通常</button><button type="button" class="tab-button" data-tab="food">フード</button><button type="button" class="tab-button" data-tab="original">オリジナル</button></div>
     </div>
-
     <div>
-      <div id="normalOrderPanel" class="order-tab active">
-        <h3>通常注文</h3>
-        <div id="normalOptions"></div>
-        <button id="addNormalToCartButton" class="primary">通常カクテルをカートに追加</button>
-      </div>
-
-      <div id="foodOrderPanel" class="order-tab">
-        <h3>フード</h3>
-        <div id="foodItemList" class="menu-grid"></div>
-      </div>
-
-      <div id="originalOrderPanel" class="order-tab">
-        <h3>オリジナル</h3>
-        <div id="originalItemList" class="menu-grid"></div>
-      </div>
+      <div id="normalOrderPanel" class="order-tab active"><h3>通常注文</h3><div id="normalOptions"></div><button id="addNormalToCartButton" class="primary">通常カクテルをカートに追加</button></div>
+      <div id="foodOrderPanel" class="order-tab"><h3>フード</h3><div id="foodItemList" class="menu-grid"></div></div>
+      <div id="originalOrderPanel" class="order-tab"><h3>オリジナル</h3><div id="originalItemList" class="menu-grid"></div></div>
     </div>
-
-    <div class="panel cart-panel">
-      <h3>買い物カート</h3>
-      <div id="cartList"></div>
-      <button id="sendOrderButton" class="primary">注文する</button>
-    </div>
+    <div class="panel cart-panel"><h3>買い物カート</h3><div id="cartList"></div><button id="sendOrderButton" class="primary">注文する</button></div>
   </div>
 </section>
 
 <section id="receivePage" class="page">
-  <div class="top-menu">
-    <h2>注文受け取り画面</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder">注文</button>
-    <button class="navReceive active-nav">受け取り</button>
-    <button class="navHistory">履歴</button>
-    <button class="navList">メニュー一覧</button>
-  </div>
-
-  <div class="panel center-panel">
-    <p class="auto-user-note">更新者：<b id="receiveUserText">未選択</b></p>
-  </div>
-
+  <div class="top-menu"><h2>注文受け取り画面</h2><button class="secondary mini backHome">ホーム</button></div>
+  <div class="page-nav"><button class="navOrder">注文</button><button class="navReceive active-nav">受け取り</button><button class="navHistory">履歴</button><button class="navList">メニュー一覧</button></div>
+  <div class="panel center-panel"><p class="auto-user-note">更新者：<b id="receiveUserText">未選択</b></p></div>
   <div id="orderReceiveList" class="order-list"></div>
 </section>
 
 <section id="historyPage" class="page">
-  <div class="top-menu">
-    <h2>注文履歴</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder">注文</button>
-    <button class="navReceive">受け取り</button>
-    <button class="navHistory active-nav">履歴</button>
-    <button class="navList">メニュー一覧</button>
-  </div>
-
-  <div class="panel center-panel">
-    <p class="auto-user-note">操作ユーザー：<b id="historyUserText">未選択</b></p>
-    <button id="resetHistoryButton" class="danger-button">注文履歴をリセット</button>
-  </div>
-
+  <div class="top-menu"><h2>注文履歴</h2><button class="secondary mini backHome">ホーム</button></div>
+  <div class="page-nav"><button class="navOrder">注文</button><button class="navReceive">受け取り</button><button class="navHistory active-nav">履歴</button><button class="navList">メニュー一覧</button></div>
+  <div class="panel center-panel"><p class="auto-user-note">操作ユーザー：<b id="historyUserText">未選択</b></p><button id="resetHistoryButton" class="danger-button">注文履歴をリセット</button></div>
   <div id="orderHistoryList" class="order-list"></div>
 </section>
 
 <section id="optionPage" class="page">
   <div class="panel center-panel">
     <h2>選択項目管理</h2>
-
-    <label>選択項目名</label>
-    <input id="optionGroupName" placeholder="例：リキュール①" />
-    <button id="addOptionGroupButton" class="primary">項目を追加</button>
-
-    <hr />
-
-    <label>項目選択</label>
-    <select id="optionGroupSelect"></select>
-
-    <label>選択肢名</label>
-    <input id="optionChoiceName" placeholder="例：紅" />
-
-    <label>ふりがな・補足</label>
-    <input id="optionChoiceSubName" placeholder="例：コウ" />
-
+    <label>選択項目名</label><input id="optionGroupName" placeholder="例：リキュール①" /><button id="addOptionGroupButton" class="primary">項目を追加</button><hr />
+    <label>項目選択</label><select id="optionGroupSelect"></select>
+    <label>選択肢名</label><input id="optionChoiceName" placeholder="例：紅" />
+    <label>ふりがな・補足</label><input id="optionChoiceSubName" placeholder="例：コウ" />
     <button id="addOptionChoiceButton" class="primary">選択肢を追加</button>
-
-    <div id="optionManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
+    <div id="optionManageList"></div><button class="secondary backSetting">設定へ戻る</button>
   </div>
 </section>
 
 <section id="tablePage" class="page">
-  <div class="panel center-panel">
-    <h2>卓管理</h2>
-
-    <label>卓名</label>
-    <input id="tableNameInput" placeholder="例：1番卓 / A卓 / VIP" />
-
-    <button id="addTableButton" class="primary">卓を追加</button>
-
-    <div id="tableManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
+  <div class="panel center-panel"><h2>卓管理</h2><label>卓名</label><input id="tableNameInput" placeholder="例：1番卓 / A卓 / VIP" /><button id="addTableButton" class="primary">卓を追加</button><div id="tableManageList"></div><button class="secondary backSetting">設定へ戻る</button></div>
 </section>
 
 <section id="namePage" class="page">
-  <div class="panel center-panel">
-    <h2>注文者名管理</h2>
-
-    <label>注文者名・スタッフ名</label>
-    <input id="orderNameInput" placeholder="例：みなと" />
-
-    <button id="addOrderNameButton" class="primary">名前を追加</button>
-
-    <div id="orderNameManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
+  <div class="panel center-panel"><h2>注文者名管理</h2><label>注文者名・スタッフ名</label><input id="orderNameInput" placeholder="例：みなと" /><label>アイコン画像URL</label><input id="orderIconInput" placeholder="https://..." /><button id="addOrderNameButton" class="primary">名前を追加</button><div id="orderNameManageList"></div><button class="secondary backSetting">設定へ戻る</button></div>
 </section>
 
 <section id="alarmPage" class="page">
-  <div class="panel center-panel">
-    <h2>アラーム管理</h2>
-
-    <label>時刻</label>
-    <input id="alarmTimeInput" type="time" />
-
-    <label>メッセージ</label>
-    <input id="alarmMessageInput" placeholder="例：次の回の準備時間です" />
-
-    <button id="addAlarmButton" class="primary">アラームを追加</button>
-
-    <div id="alarmManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
+  <div class="panel center-panel"><h2>アラーム管理</h2><label>時刻</label><input id="alarmTimeInput" type="time" /><label>メッセージ</label><input id="alarmMessageInput" placeholder="例：次の回の準備時間です" /><button id="addAlarmButton" class="primary">アラームを追加</button><div id="alarmManageList"></div><button class="secondary backSetting">設定へ戻る</button></div>
 </section>
 
 <section id="announcementPage" class="page">
-  <div class="panel center-panel">
-    <h2>全体アナウンス</h2>
-
-    <p class="auto-user-note">送信者：<b id="announcementUserText">未選択</b></p>
-
-    <label>内容</label>
-    <textarea id="announcementMessageInput" placeholder="例：まもなくラストオーダーです"></textarea>
-
-    <button id="sendAnnouncementButton" class="primary">全員にアナウンス送信</button>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
+  <div class="panel center-panel"><h2>全体アナウンス</h2><p class="auto-user-note">送信者：<b id="announcementUserText">未選択</b></p><label>内容</label><textarea id="announcementMessageInput" placeholder="例：まもなくラストオーダーです"></textarea><button id="sendAnnouncementButton" class="primary">全員にアナウンス送信</button><button class="secondary backSetting">設定へ戻る</button></div>
 </section>
 
-<script type="module" src="./遊び.js?v=81"></script>
+<script type="module" src="./遊び.js?v=90"></script>
 </body>
 </html>
