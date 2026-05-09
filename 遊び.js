@@ -12,9 +12,14 @@ let cart = [];
 let optionGroupsCache = [];
 let optionChoicesCache = [];
 let selectedCustomerName = "";
+let selectedReceiverName = "";
 let ordersChannel = null;
 let emergencyChannel = null;
+let announcementChannel = null;
+let alarmChannel = null;
 let focusedMenuId = "";
+let alarmCache = [];
+let triggeredAlarmKeys = new Set();
 
 const $ = id => document.getElementById(id);
 
@@ -29,10 +34,11 @@ const pages = {
   order: $("orderPage"),
   receive: $("receivePage"),
   history: $("historyPage"),
-  emergency: $("emergencyPage"),
   option: $("optionPage"),
   table: $("tablePage"),
   name: $("namePage"),
+  alarm: $("alarmPage"),
+  announcement: $("announcementPage"),
 };
 
 function showPage(name) {
@@ -58,6 +64,11 @@ function esc(text) {
     .replaceAll("'", "&#039;");
 }
 
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
 function menuLinkHtml(item) {
   if (item.id && !String(item.id).startsWith("normal-")) {
     return `<span class="clickable-menu" onclick="openMenuFromOrder('${item.id}')">${esc(item.name)}</span>`;
@@ -79,16 +90,52 @@ async function openPage(pageName, renderFunction) {
   }
 }
 
-function stopRealtime() {
-  if (ordersChannel) {
-    supabase.removeChannel(ordersChannel);
-    ordersChannel = null;
-  }
+function updateClock() {
+  const now = new Date();
+  const text = now.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
 
-  if (emergencyChannel) {
-    supabase.removeChannel(emergencyChannel);
-    emergencyChannel = null;
+  $("clockText").textContent = text;
+}
+
+function playAlertSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.18);
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.36);
+
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.8);
+  } catch (error) {
+    console.log("音声再生がブラウザに制限されました。");
   }
+}
+
+function stopRealtime() {
+  [ordersChannel, emergencyChannel, announcementChannel, alarmChannel].forEach(channel => {
+    if (channel) supabase.removeChannel(channel);
+  });
+
+  ordersChannel = null;
+  emergencyChannel = null;
+  announcementChannel = null;
+  alarmChannel = null;
 }
 
 function startRealtime() {
@@ -128,6 +175,39 @@ function startRealtime() {
       }
     )
     .subscribe();
+
+  announcementChannel = supabase
+    .channel("announcement-" + currentGroupId)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "announcements",
+        filter: "group_id=eq." + currentGroupId
+      },
+      payload => {
+        showAnnouncement(payload.new);
+      }
+    )
+    .subscribe();
+
+  alarmChannel = supabase
+    .channel("alarm-" + currentGroupId)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "alarms",
+        filter: "group_id=eq." + currentGroupId
+      },
+      async () => {
+        await loadAlarms();
+        if (isActive("alarm")) await renderAlarmManagePage();
+      }
+    )
+    .subscribe();
 }
 
 function showEmergencyPopup(data) {
@@ -138,10 +218,53 @@ function showEmergencyPopup(data) {
   `;
 
   $("emergencyOverlay").classList.remove("hidden");
+  playAlertSound();
+}
+
+function showAnnouncement(data) {
+  $("announcementText").innerHTML = `
+    <b>${esc(data.sender_name || "運営")}</b><br>
+    ${esc(data.message)}
+  `;
+
+  $("announcementOverlay").classList.remove("hidden");
+  playAlertSound();
+}
+
+function showAlarm(data) {
+  $("alarmText").innerHTML = `
+    ${esc(data.alarm_time)}<br>
+    ${esc(data.message || "アラーム時間です")}
+  `;
+
+  $("alarmOverlay").classList.remove("hidden");
+  playAlertSound();
 }
 
 $("closeEmergencyButton").onclick = () => {
   $("emergencyOverlay").classList.add("hidden");
+};
+
+$("closeAnnouncementButton").onclick = () => {
+  $("announcementOverlay").classList.add("hidden");
+};
+
+$("closeAlarmButton").onclick = () => {
+  $("alarmOverlay").classList.add("hidden");
+};
+
+$("floatingEmergencyButton").onclick = async () => {
+  if (!currentGroupId) {
+    alert("先にグループへログインしてください");
+    return;
+  }
+
+  await renderEmergencyForm();
+  $("emergencyFormOverlay").classList.remove("hidden");
+};
+
+$("closeEmergencyFormButton").onclick = () => {
+  $("emergencyFormOverlay").classList.add("hidden");
 };
 
 async function loadGroups() {
@@ -169,15 +292,11 @@ async function renderGroupOptions() {
 
   groups.forEach(group => {
     $("groupSelect").innerHTML += `
-      <option value="${group.id}">
-        ${esc(group.name)}
-      </option>
+      <option value="${group.id}">${esc(group.name)}</option>
     `;
 
     $("adminGroupSelect").innerHTML += `
-      <option value="${group.id}">
-        ${esc(group.name)}
-      </option>
+      <option value="${group.id}">${esc(group.name)}</option>
     `;
   });
 }
@@ -229,6 +348,14 @@ $("settingNameButton").onclick = async () => {
   await openPage("name", renderOrderNameManagePage);
 };
 
+$("settingAlarmButton").onclick = async () => {
+  await openPage("alarm", renderAlarmManagePage);
+};
+
+$("settingAnnouncementButton").onclick = async () => {
+  await openPage("announcement", renderAnnouncementPage);
+};
+
 $("settingAdminButton").onclick = async () => {
   await renderGroupOptions();
   showPage("admin");
@@ -243,12 +370,6 @@ document.querySelectorAll(".backHome").forEach(btn => {
 document.querySelectorAll(".backSetting").forEach(btn => {
   btn.onclick = () => {
     showPage("setting");
-  };
-});
-
-document.querySelectorAll(".backOrder").forEach(btn => {
-  btn.onclick = async () => {
-    await openPage("order", renderOrderPage);
   };
 });
 
@@ -278,10 +399,6 @@ document.querySelectorAll(".navList").forEach(btn => {
   };
 });
 
-$("orderEmergencyButton").onclick = async () => {
-  await openPage("emergency", renderEmergencyPage);
-};
-
 $("logoutButton").onclick = () => {
   stopRealtime();
 
@@ -289,7 +406,12 @@ $("logoutButton").onclick = () => {
   currentGroupName = "";
   cart = [];
   selectedCustomerName = "";
+  selectedReceiverName = "";
   focusedMenuId = "";
+  alarmCache = [];
+  triggeredAlarmKeys.clear();
+
+  document.body.classList.remove("logged-in");
 
   showPage("login");
 };
@@ -367,6 +489,7 @@ $("loginButton").onclick = async () => {
   currentGroupId = String(data.id);
   currentGroupName = data.name;
   selectedCustomerName = "";
+  selectedReceiverName = "";
   focusedMenuId = "";
 
   $("currentGroupText").textContent =
@@ -374,7 +497,11 @@ $("loginButton").onclick = async () => {
 
   $("groupPassword").value = "";
 
+  document.body.classList.add("logged-in");
+
+  await loadAlarms();
   startRealtime();
+
   showPage("home");
 };
 
@@ -431,6 +558,8 @@ $("deleteGroupButton").onclick = async () => {
   await supabase.from("tables").delete().eq("group_id", groupId);
   await supabase.from("order_names").delete().eq("group_id", groupId);
   await supabase.from("emergency_calls").delete().eq("group_id", groupId);
+  await supabase.from("announcements").delete().eq("group_id", groupId);
+  await supabase.from("alarms").delete().eq("group_id", groupId);
 
   const { error } = await supabase
     .from("groups")
@@ -709,7 +838,7 @@ $("addOrderNameButton").onclick = async () => {
   const name = $("orderNameInput").value.trim();
 
   if (!name) {
-    alert("注文者名を入力してください");
+    alert("名前を入力してください");
     return;
   }
 
@@ -732,7 +861,7 @@ async function renderOrderNameManagePage() {
 
   if (names.length === 0) {
     $("orderNameManageList").innerHTML =
-      `<div class="manage-item">まだ注文者名がありません。</div>`;
+      `<div class="manage-item">まだ名前がありません。</div>`;
     return;
   }
 
@@ -759,24 +888,33 @@ window.deleteOrderName = async id => {
   await renderOrderNameManagePage();
 };
 
-async function renderOrderNameSelect() {
+async function renderNameSelects() {
   const names = await loadOrderNames();
 
-  $("customerNameSelect").innerHTML =
-    `<option value="">名前を選択してください</option>`;
+  const selects = [
+    $("customerNameSelect"),
+    $("receiverNameSelect"),
+    $("emergencyNameSelect"),
+    $("announcementSenderSelect")
+  ].filter(Boolean);
 
-  names.forEach(item => {
-    $("customerNameSelect").innerHTML += `
-      <option value="${esc(item.name)}">${esc(item.name)}</option>
-    `;
+  selects.forEach(select => {
+    select.innerHTML = `<option value="">名前を選択してください</option>`;
+
+    names.forEach(item => {
+      select.innerHTML += `<option value="${esc(item.name)}">${esc(item.name)}</option>`;
+    });
   });
 
-  if (selectedCustomerName) {
-    $("customerNameSelect").value = selectedCustomerName;
-  }
+  if (selectedCustomerName) $("customerNameSelect").value = selectedCustomerName;
+  if (selectedReceiverName) $("receiverNameSelect").value = selectedReceiverName;
 
   $("customerNameSelect").onchange = () => {
     selectedCustomerName = $("customerNameSelect").value;
+  };
+
+  $("receiverNameSelect").onchange = () => {
+    selectedReceiverName = $("receiverNameSelect").value;
   };
 }
 
@@ -937,18 +1075,10 @@ window.deleteOptionGroup = async id => {
   await renderOptionManagePage();
 };
 
-async function renderEmergencyPage() {
-  const names = await loadOrderNames();
+async function renderEmergencyForm() {
+  await renderNameSelects();
+
   const tables = await loadTables();
-
-  $("emergencyNameSelect").innerHTML =
-    `<option value="">名前を選択してください</option>`;
-
-  names.forEach(item => {
-    $("emergencyNameSelect").innerHTML += `
-      <option value="${esc(item.name)}">${esc(item.name)}</option>
-    `;
-  });
 
   $("emergencyTableSelect").innerHTML =
     `<option value="">卓を選択してください</option>`;
@@ -986,8 +1116,165 @@ $("sendEmergencyButton").onclick = async () => {
     return;
   }
 
-  alert("緊急通知を送信しました");
+  $("emergencyFormOverlay").classList.add("hidden");
 };
+
+async function renderAnnouncementPage() {
+  await renderNameSelects();
+  $("announcementMessageInput").value = "";
+}
+
+$("sendAnnouncementButton").onclick = async () => {
+  const senderName = $("announcementSenderSelect").value || "運営";
+  const message = $("announcementMessageInput").value.trim();
+
+  if (!message) {
+    alert("アナウンス内容を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("announcements")
+    .insert([
+      {
+        group_id: currentGroupId,
+        sender_name: senderName,
+        message
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("アナウンス送信に失敗しました");
+    return;
+  }
+
+  $("announcementMessageInput").value = "";
+  alert("アナウンスを送信しました");
+};
+
+async function loadAlarms() {
+  const { data, error } = await supabase
+    .from("alarms")
+    .select("*")
+    .eq("group_id", currentGroupId);
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  alarmCache = data || [];
+  return alarmCache;
+}
+
+async function renderAlarmManagePage() {
+  await loadAlarms();
+
+  if (alarmCache.length === 0) {
+    $("alarmManageList").innerHTML =
+      `<div class="manage-item">まだアラームがありません。</div>`;
+    return;
+  }
+
+  $("alarmManageList").innerHTML = alarmCache.map(alarm => `
+    <div class="manage-item">
+      <h3>${esc(alarm.alarm_time)}</h3>
+      <p>${esc(alarm.message)}</p>
+      <p>状態：${alarm.enabled ? "有効" : "無効"}</p>
+
+      <button class="secondary mini" onclick="toggleAlarm('${alarm.id}', ${!alarm.enabled})">
+        ${alarm.enabled ? "無効にする" : "有効にする"}
+      </button>
+
+      <button class="delete mini" onclick="deleteAlarm('${alarm.id}')">
+        削除
+      </button>
+    </div>
+  `).join("");
+}
+
+$("addAlarmButton").onclick = async () => {
+  const alarmTime = $("alarmTimeInput").value;
+  const message = $("alarmMessageInput").value.trim();
+
+  if (!alarmTime) {
+    alert("時刻を入力してください");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("alarms")
+    .insert([
+      {
+        group_id: currentGroupId,
+        alarm_time: alarmTime,
+        message: message || "アラーム時間です",
+        enabled: true
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("アラーム追加に失敗しました");
+    return;
+  }
+
+  $("alarmTimeInput").value = "";
+  $("alarmMessageInput").value = "";
+
+  await renderAlarmManagePage();
+};
+
+window.toggleAlarm = async (id, enabled) => {
+  const { error } = await supabase
+    .from("alarms")
+    .update({ enabled })
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("変更失敗");
+    return;
+  }
+
+  await renderAlarmManagePage();
+};
+
+window.deleteAlarm = async id => {
+  const { error } = await supabase
+    .from("alarms")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error(error);
+    alert("削除失敗");
+    return;
+  }
+
+  await renderAlarmManagePage();
+};
+
+function checkAlarms() {
+  if (!currentGroupId || alarmCache.length === 0) return;
+
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const currentTime = `${hh}:${mm}`;
+
+  alarmCache.forEach(alarm => {
+    if (!alarm.enabled) return;
+
+    const key = `${todayKey()}-${alarm.id}-${alarm.alarm_time}`;
+
+    if (alarm.alarm_time === currentTime && !triggeredAlarmKeys.has(key)) {
+      triggeredAlarmKeys.add(key);
+      showAlarm(alarm);
+    }
+  });
+}
 
 function setupOrderTabs() {
   document.querySelectorAll(".tab-button").forEach(button => {
@@ -1021,7 +1308,7 @@ async function renderOrderPage() {
 
   const tables = await loadTables();
   await loadOptions();
-  await renderOrderNameSelect();
+  await renderNameSelects();
 
   $("orderTableSelect").innerHTML =
     `<option value="">卓を選択してください</option>`;
@@ -1198,7 +1485,9 @@ $("sendOrderButton").onclick = async () => {
         items: cart,
         options: [],
         memo: $("orderMemo").value,
-        status: "pending"
+        status: "pending",
+        updated_by: "",
+        updated_at: new Date().toISOString()
       }
     ]);
 
@@ -1237,6 +1526,8 @@ async function loadOrders(includeDone = false) {
 }
 
 async function renderReceivePage() {
+  await renderNameSelects();
+
   const orders = await loadOrders(false);
 
   if (orders.length === 0) {
@@ -1272,6 +1563,7 @@ async function renderReceivePage() {
 
         <p><b>メモ：</b>${esc(order.memo)}</p>
         <p><b>状態：</b>${statusText}</p>
+        <p><b>最終更新：</b>${esc(order.updated_by || "未更新")}</p>
 
         <button class="status-button ${buttonClass}" onclick="advanceOrderStatus('${order.id}', '${order.status}')">
           ${nextText}
@@ -1282,16 +1574,29 @@ async function renderReceivePage() {
 }
 
 window.advanceOrderStatus = async (id, status) => {
+  const updater = $("receiverNameSelect").value;
+
+  if (!updater) {
+    alert("更新者名を選択してください");
+    return;
+  }
+
+  selectedReceiverName = updater;
+
   const nextStatus = status === "pending" ? "making" : "done";
 
   const { error } = await supabase
     .from("orders")
-    .update({ status: nextStatus })
+    .update({
+      status: nextStatus,
+      updated_by: updater,
+      updated_at: new Date().toISOString()
+    })
     .eq("id", id);
 
   if (error) {
     console.error(error);
-    alert("状態変更失敗");
+    alert("状態変更失敗。ordersに updated_by / updated_at 列があるか確認してください。");
     return;
   }
 
@@ -1317,6 +1622,7 @@ async function renderHistoryPage() {
         <h3>卓：${esc(order.table_name)}</h3>
         <p><b>名前：</b>${esc(order.customer_name)}</p>
         <p><b>状態：</b>${statusText}</p>
+        <p><b>最終更新：</b>${esc(order.updated_by || "未更新")}</p>
 
         <ul>
           ${(order.items || []).map(item => `
@@ -1356,6 +1662,10 @@ $("resetHistoryButton").onclick = async () => {
 };
 
 setupOrderTabs();
+
+updateClock();
+setInterval(updateClock, 1000);
+setInterval(checkAlarms, 10000);
 
 await renderGroupOptions();
 showPage("login");
