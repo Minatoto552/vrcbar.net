@@ -1,425 +1,587 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VRC Bar Order System</title>
-  <link rel="stylesheet" href="遊び.css" />
-</head>
-<body>
-
-<button id="floatingEmergencyButton" class="floating-emergency" title="緊急通知">🚨</button>
-
-<div id="emergencyFormOverlay" class="modal-overlay hidden">
-  <div class="modal-box danger-modal">
-    <h2>🚨 緊急通知を送信</h2>
-
-    <label>名前</label>
-    <select id="emergencyNameSelect"></select>
-
-    <label>卓</label>
-    <select id="emergencyTableSelect"></select>
-
-    <button id="sendEmergencyButton" class="danger-button">全員に緊急通知を送信</button>
-    <button id="closeEmergencyFormButton" class="secondary">閉じる</button>
-  </div>
-</div>
-
-<div id="emergencyOverlay" class="full-alert hidden">
-  <div class="full-alert-box emergency-alert">
-    <h1>🚨 緊急通知 🚨</h1>
-    <p id="emergencyText"></p>
-    <button id="closeEmergencyButton" class="secondary">確認した</button>
-  </div>
-</div>
-
-<div id="announcementOverlay" class="announcement-toast hidden">
-  <h3>📢 アナウンス</h3>
-  <p id="announcementText"></p>
-  <button id="closeAnnouncementButton">閉じる</button>
-</div>
-
-<div id="alarmOverlay" class="full-alert hidden">
-  <div class="full-alert-box alarm-alert">
-    <h1>⏰ アラーム</h1>
-    <p id="alarmText"></p>
-    <button id="closeAlarmButton" class="secondary">止める</button>
-  </div>
-</div>
-
-<header>
-  <div class="user-mini-box hidden" id="globalUserBox">
-    <div class="user-icon-preview">
-      <img id="globalUserIcon" src="" alt="">
-    </div>
-
-    <div class="user-select-area">
-      <label>使用ユーザー</label>
-      <select id="globalUserSelect"></select>
-    </div>
-  </div>
-
-  <div class="clock-box">
-    <span id="clockText">--:--:--</span>
-  </div>
-
-  <h1>🍸 VRC Bar System</h1>
-  <p>注文・受け取り・メニュー管理</p>
-</header>
-
-<section id="loginPage" class="page active">
-  <div class="panel center-panel">
-    <h2>グループを開く</h2>
-
-    <label>グループ選択</label>
-    <select id="groupSelect"></select>
-
-    <label>グループパスワード</label>
-    <input id="groupPassword" type="password" placeholder="パスワードを入力" />
-
-    <button id="loginButton" class="primary">ログイン</button>
-    <button id="goCreateGroupButton" class="small-link-button">＋ グループを作成する</button>
-  </div>
-</section>
-
-<section id="createGroupPage" class="page">
-  <div class="panel center-panel">
-    <h2>グループ作成</h2>
-
-    <label>グループ名</label>
-    <input id="newGroupName" placeholder="例：Nakiya Bar" />
-
-    <label>グループパスワード</label>
-    <input id="newGroupPassword" type="password" />
-
-    <button id="createGroupButton" class="primary">グループを作成</button>
-    <button id="backToLoginButton" class="secondary">戻る</button>
-  </div>
-</section>
-
-<section id="homePage" class="page">
-  <div class="top-menu">
-    <p id="currentGroupText">現在のグループ：</p>
-    <button id="logoutButton" class="secondary mini">ログアウト</button>
-  </div>
-
-  <div class="menu-buttons">
-    <button id="homeOrderButton" class="primary">注文画面</button>
-    <button id="homeReceiveButton" class="primary">受け取り画面</button>
-    <button id="homeHistoryButton" class="primary">注文履歴</button>
-    <button id="homeListButton" class="primary">メニュー一覧</button>
-    <button id="homeSettingButton" class="secondary">設定</button>
-  </div>
-</section>
-
-<section id="settingPage" class="page">
-  <div class="top-menu">
-    <h2>設定</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="menu-buttons">
-    <button id="settingRegisterButton" class="primary">メニュー登録</button>
-    <button id="settingOptionButton" class="primary">選択項目管理</button>
-    <button id="settingTableButton" class="primary">卓管理</button>
-    <button id="settingNameButton" class="primary">注文者名管理</button>
-    <button id="settingAlarmButton" class="primary">アラーム管理</button>
-    <button id="settingAnnouncementButton" class="primary">アナウンス送信</button>
-    <button id="settingAdminButton" class="danger-button">管理人メニュー</button>
-  </div>
-</section>
-
-<section id="adminPage" class="page">
-  <div class="panel center-panel">
-    <h2>管理人メニュー</h2>
-
-    <label>管理人パスワード</label>
-    <input id="adminPassword" type="password" />
-
-    <label>グループ選択</label>
-    <select id="adminGroupSelect"></select>
-
-    <label>新しいグループパスワード</label>
-    <input id="newPasswordForGroup" type="password" />
-
-    <button id="changeGroupPasswordButton" class="primary">パスワード変更</button>
-    <button id="deleteGroupButton" class="danger-button">グループ削除</button>
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<section id="listPage" class="page">
-  <div class="top-menu">
-    <h2>メニュー一覧</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder">注文</button>
-    <button class="navReceive">受け取り</button>
-    <button class="navHistory">履歴</button>
-    <button class="navList active-nav">メニュー一覧</button>
-  </div>
-
-  <div class="tools">
-    <input id="search" placeholder="検索..." />
-  </div>
-
-  <div id="menuList" class="menu-grid"></div>
-</section>
-
-<section id="registerPage" class="page">
-  <div class="panel center-panel">
-    <h2>メニュー登録</h2>
-
-    <form id="cocktailForm">
-      <input type="hidden" id="editCocktailId" />
-
-      <label>商品タイプ</label>
-      <select id="itemType" required>
-        <option value="" selected disabled>選択してください</option>
-        <option>通常</option>
-        <option>フード</option>
-        <option>オリジナル</option>
-      </select>
-
-      <label>カテゴリー</label>
-      <select id="category" required>
-        <option value="" selected disabled>選択してください</option>
-        <option>ノーマル</option>
-        <option>キャストオリカク</option>
-        <option>スタッフオリカク</option>
-        <option>フード</option>
-      </select>
-
-      <label>商品名</label>
-      <input id="name" required />
-
-      <label>味イメージ</label>
-      <select id="taste" required>
-        <option value="" selected disabled>選択してください</option>
-        <option>甘い</option>
-        <option>超甘い</option>
-        <option>さっぱり</option>
-        <option>フルーティー</option>
-        <option>ミルク系</option>
-        <option>炭酸系</option>
-        <option>苦め</option>
-        <option>大人っぽい</option>
-        <option>デザート系</option>
-        <option>フード系</option>
-        <option>ネタ系</option>
-      </select>
-
-      <label>材料・内容</label>
-      <textarea id="bottles"></textarea>
-
-      <label>作り方・提供方法</label>
-      <textarea id="recipe"></textarea>
-
-      <label>説明</label>
-      <textarea id="description"></textarea>
-
-      <label>画像URL</label>
-      <input id="image" />
-
-      <button type="submit" class="primary" id="submitButton">登録する</button>
-    </form>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<section id="orderPage" class="page">
-  <div class="top-menu">
-    <h2>注文画面</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder active-nav">注文</button>
-    <button class="navReceive">受け取り</button>
-    <button class="navHistory">履歴</button>
-    <button class="navList">メニュー一覧</button>
-  </div>
-
-  <div class="order-layout">
-    <div class="panel">
-      <label>卓</label>
-      <select id="orderTableSelect"></select>
-
-      <p class="auto-user-note">注文者：<b id="orderUserText">未選択</b></p>
-
-      <label>メモ</label>
-      <textarea id="orderMemo" placeholder="例：氷少なめ"></textarea>
-
-      <div class="tab-buttons">
-        <button type="button" class="tab-button active" data-tab="normal">通常</button>
-        <button type="button" class="tab-button" data-tab="food">フード</button>
-        <button type="button" class="tab-button" data-tab="original">オリジナル</button>
-      </div>
-    </div>
-
-    <div>
-      <div id="normalOrderPanel" class="order-tab active">
-        <h3>通常注文</h3>
-        <div id="normalOptions"></div>
-        <button id="addNormalToCartButton" class="primary">通常カクテルをカートに追加</button>
-      </div>
-
-      <div id="foodOrderPanel" class="order-tab">
-        <h3>フード</h3>
-        <div id="foodItemList" class="menu-grid"></div>
-      </div>
-
-      <div id="originalOrderPanel" class="order-tab">
-        <h3>オリジナル</h3>
-        <div id="originalItemList" class="menu-grid"></div>
-      </div>
-    </div>
-
-    <div class="panel cart-panel">
-      <h3>買い物カート</h3>
-      <div id="cartList"></div>
-      <button id="sendOrderButton" class="primary">注文する</button>
-    </div>
-  </div>
-</section>
-
-<section id="receivePage" class="page">
-  <div class="top-menu">
-    <h2>注文受け取り画面</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder">注文</button>
-    <button class="navReceive active-nav">受け取り</button>
-    <button class="navHistory">履歴</button>
-    <button class="navList">メニュー一覧</button>
-  </div>
-
-  <div class="panel center-panel">
-    <p class="auto-user-note">更新者：<b id="receiveUserText">未選択</b></p>
-  </div>
-
-  <div id="orderReceiveList" class="order-list"></div>
-</section>
-
-<section id="historyPage" class="page">
-  <div class="top-menu">
-    <h2>注文履歴</h2>
-    <button class="secondary mini backHome">ホーム</button>
-  </div>
-
-  <div class="page-nav">
-    <button class="navOrder">注文</button>
-    <button class="navReceive">受け取り</button>
-    <button class="navHistory active-nav">履歴</button>
-    <button class="navList">メニュー一覧</button>
-  </div>
-
-  <div class="panel center-panel">
-    <p class="auto-user-note">操作ユーザー：<b id="historyUserText">未選択</b></p>
-    <button id="resetHistoryButton" class="danger-button">注文履歴をリセット</button>
-  </div>
-
-  <div id="orderHistoryList" class="order-list"></div>
-</section>
-
-<section id="optionPage" class="page">
-  <div class="panel center-panel">
-    <h2>選択項目管理</h2>
-
-    <label>選択項目名</label>
-    <input id="optionGroupName" placeholder="例：リキュール①" />
-    <button id="addOptionGroupButton" class="primary">項目を追加</button>
-
-    <hr />
-
-    <label>項目選択</label>
-    <select id="optionGroupSelect"></select>
-
-    <label>選択肢名</label>
-    <input id="optionChoiceName" placeholder="例：紅" />
-
-    <label>ふりがな・補足</label>
-    <input id="optionChoiceSubName" placeholder="例：コウ" />
-
-    <button id="addOptionChoiceButton" class="primary">選択肢を追加</button>
-
-    <div id="optionManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<section id="tablePage" class="page">
-  <div class="panel center-panel">
-    <h2>卓管理</h2>
-
-    <label>卓名</label>
-    <input id="tableNameInput" placeholder="例：1番卓 / A卓 / VIP" />
-
-    <button id="addTableButton" class="primary">卓を追加</button>
-
-    <div id="tableManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<section id="namePage" class="page">
-  <div class="panel center-panel">
-    <h2>注文者名管理</h2>
-
-    <label>注文者名・スタッフ名</label>
-    <input id="orderNameInput" placeholder="例：みなと" />
-
-    <label>アイコン画像URL</label>
-    <input id="orderIconInput" placeholder="https://..." />
-
-    <button id="addOrderNameButton" class="primary">名前を追加</button>
-
-    <div id="orderNameManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<section id="alarmPage" class="page">
-  <div class="panel center-panel">
-    <h2>アラーム管理</h2>
-
-    <label>時刻</label>
-    <input id="alarmTimeInput" type="time" />
-
-    <label>メッセージ</label>
-    <input id="alarmMessageInput" placeholder="例：次の回の準備時間です" />
-
-    <button id="addAlarmButton" class="primary">アラームを追加</button>
-
-    <div id="alarmManageList"></div>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<section id="announcementPage" class="page">
-  <div class="panel center-panel">
-    <h2>全体アナウンス</h2>
-
-    <p class="auto-user-note">送信者：<b id="announcementUserText">未選択</b></p>
-
-    <label>内容</label>
-    <textarea id="announcementMessageInput" placeholder="例：まもなくラストオーダーです"></textarea>
-
-    <button id="sendAnnouncementButton" class="primary">全員にアナウンス送信</button>
-
-    <button class="secondary backSetting">設定へ戻る</button>
-  </div>
-</section>
-
-<script type="module" src="./遊び.js?v=90"></script>
-</body>
-</html>
+:root {
+  --gold: #ffd86b;
+  --pink: #ff95d0;
+  --bg1: #09050f;
+  --bg2: #1b0f25;
+  --panel: rgba(35, 22, 48, 0.82);
+  --panel2: rgba(255,255,255,0.08);
+  --text: #fff8ef;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Yu Gothic", sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255,140,198,0.2), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(116,215,255,0.15), transparent 35%),
+    linear-gradient(180deg, var(--bg2), var(--bg1));
+}
+
+body.logged-in .floating-emergency {
+  display: flex;
+}
+
+header {
+  position: relative;
+  text-align: center;
+  padding: 34px 20px 20px;
+  animation: fadeDown 0.5s ease;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 42px;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(255,216,107,0.35);
+}
+
+header p {
+  color: #d8c7e8;
+}
+
+.clock-box {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 9000;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(20, 10, 30, 0.75);
+  border: 1px solid rgba(255,216,107,0.35);
+  color: var(--gold);
+  font-weight: bold;
+  backdrop-filter: blur(12px);
+}
+
+.user-mini-box {
+  position: fixed;
+  top: 14px;
+  left: 16px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 220px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(20, 10, 30, 0.78);
+  border: 1px solid rgba(255,216,107,0.28);
+  backdrop-filter: blur(12px);
+  text-align: left;
+}
+
+.user-icon-preview img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.3);
+  display: none;
+}
+
+.user-select-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-select-area label {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.user-select-area select {
+  padding: 7px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.page {
+  display: none;
+  width: 94%;
+  max-width: 1280px;
+  margin: 0 auto 48px;
+}
+
+.page.active {
+  display: block;
+  animation: pageIn 0.28s ease;
+}
+
+.panel,
+.card,
+.top-menu {
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 38px rgba(0,0,0,0.28);
+}
+
+.center-panel {
+  max-width: 700px;
+  margin: 0 auto 20px;
+}
+
+label {
+  display: block;
+  margin-top: 16px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border-radius: 14px;
+  border: none;
+  padding: 12px;
+  font-size: 15px;
+}
+
+textarea {
+  min-height: 90px;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.primary {
+  width: 100%;
+  margin-top: 15px;
+  padding: 13px;
+  border-radius: 999px;
+  font-weight: bold;
+  color: #24112e;
+  background: linear-gradient(135deg, var(--gold), var(--pink));
+}
+
+.secondary {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 999px;
+  font-weight: bold;
+  color: white;
+  background: rgba(255,255,255,0.14);
+}
+
+.small-link-button {
+  display: block;
+  margin: 16px auto 0;
+  background: none;
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+.danger-button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px;
+  border-radius: 999px;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(135deg, #ff4d6d, #b51535);
+}
+
+.top-menu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.mini {
+  width: auto;
+  margin: 0;
+  padding: 10px 18px;
+}
+
+.menu-buttons,
+.page-nav {
+  display: grid;
+  gap: 14px;
+}
+
+.menu-buttons {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.page-nav {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin-bottom: 20px;
+}
+
+.page-nav button {
+  padding: 11px;
+  border-radius: 999px;
+  font-weight: bold;
+  color: white;
+  background: rgba(255,255,255,0.14);
+}
+
+.active-nav {
+  color: #1d1027 !important;
+  background: linear-gradient(135deg, var(--gold), var(--pink)) !important;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  animation: cardIn 0.25s ease;
+}
+
+.card-image {
+  height: 140px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tag {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: 999px;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  background: rgba(255,216,107,0.18);
+  color: #ffe7a5;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.edit,
+.delete {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.edit {
+  background: linear-gradient(135deg, #74d7ff, #8df2dd);
+}
+
+.delete {
+  background: linear-gradient(135deg, #ff4d6d, #b51535);
+  color: white;
+}
+
+.order-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 20px;
+}
+
+.cart-panel {
+  position: sticky;
+  top: 70px;
+  height: fit-content;
+}
+
+.cart-item,
+.order-card,
+.manage-item {
+  background: var(--panel2);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+  animation: cardIn 0.25s ease;
+}
+
+.auto-user-note {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,216,107,0.12);
+  border: 1px solid rgba(255,216,107,0.22);
+}
+
+.option-box {
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.08);
+}
+
+.tab-buttons {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.tab-button {
+  padding: 12px;
+  border-radius: 999px;
+  font-weight: bold;
+  color: white;
+  background: rgba(255,255,255,0.14);
+}
+
+.tab-button.active {
+  color: #1d1027;
+  background: linear-gradient(135deg, var(--gold), var(--pink));
+}
+
+.order-tab {
+  display: none;
+}
+
+.order-tab.active {
+  display: block;
+}
+
+.status-button,
+.history-status-button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 999px;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.status-pending {
+  background: #ff4d6d;
+  color: white;
+}
+
+.status-making {
+  background: var(--gold);
+  color: #24112e;
+}
+
+.status-done {
+  background: #7dffb2;
+  color: #16351f;
+}
+
+.order-card.pending {
+  border-left: 6px solid #ff4d6d;
+}
+
+.order-card.making {
+  border-left: 6px solid var(--gold);
+}
+
+.order-card.done {
+  border-left: 6px solid #7dffb2;
+  opacity: 0.92;
+}
+
+.clickable-menu {
+  color: var(--gold);
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.clickable-menu:hover {
+  color: var(--pink);
+}
+
+.floating-emergency {
+  display: none;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9998;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  background: linear-gradient(135deg, #ff4d6d, #b51535);
+  box-shadow: 0 0 24px rgba(255, 77, 109, 0.7);
+  animation: pulseEmergency 1.5s infinite;
+}
+
+.modal-overlay,
+.full-alert {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,0.72);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modal-box,
+.full-alert-box {
+  width: min(560px, 94vw);
+  border-radius: 26px;
+  padding: 28px;
+  background: rgba(35, 22, 48, 0.96);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 40px rgba(255,216,107,0.25);
+}
+
+.danger-modal,
+.emergency-alert {
+  border-color: #ff4d6d;
+  box-shadow: 0 0 48px rgba(255,77,109,0.5);
+}
+
+.full-alert-box h1 {
+  text-align: center;
+  font-size: 42px;
+  color: var(--gold);
+}
+
+.full-alert-box p {
+  text-align: center;
+  font-size: 24px;
+  line-height: 1.7;
+  font-weight: bold;
+}
+
+.announcement-toast {
+  position: fixed;
+  top: 106px;
+  right: 16px;
+  z-index: 9999;
+  width: min(380px, calc(100vw - 32px));
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(35, 22, 48, 0.96);
+  border: 2px solid var(--gold);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+  animation: slideInRight 0.25s ease;
+}
+
+.announcement-toast h3 {
+  margin: 0 0 8px;
+  color: var(--gold);
+}
+
+.announcement-toast button {
+  width: 100%;
+  padding: 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+}
+
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseEmergency {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .order-layout,
+  .top-menu {
+    display: block;
+  }
+
+  .cart-panel {
+    position: static;
+    margin-top: 20px;
+  }
+
+  .mini {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .clock-box {
+    position: static;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .user-mini-box {
+    position: static;
+    width: 100%;
+    max-width: 260px;
+    margin: 10px auto;
+  }
+}
