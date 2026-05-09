@@ -2,29 +2,25 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const supabaseUrl = "https://rsjeyuvhppajxsgmgqbp.supabase.co";
 const supabaseKey = "sb_publishable_tZWRzd0lcS3mJKcWdKZtbw_TPNs5AFp";
-
-const supabase = createClient(
-  supabaseUrl,
-  supabaseKey
-);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ADMIN_PASSWORD = "1112";
 
 let currentGroupId = "";
 let currentGroupName = "";
-
 let cart = [];
-
 let optionGroupsCache = [];
 let optionChoicesCache = [];
-
 let selectedUserName = "";
-let selectedUserIcon = "";
-
+let ordersChannel = null;
+let emergencyChannel = null;
+let announcementChannel = null;
+let alarmChannel = null;
 let focusedMenuId = "";
+let alarmCache = [];
+let triggeredAlarmKeys = new Set();
 
-const $ = id =>
-  document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const pages = {
   login: $("loginPage"),
@@ -41,8 +37,9 @@ const pages = {
   table: $("tablePage"),
   name: $("namePage"),
   alarm: $("alarmPage"),
-  announcement: $("announcementPage")
+  announcement: $("announcementPage"),
 };
+
 
 function showPage(name){
 
